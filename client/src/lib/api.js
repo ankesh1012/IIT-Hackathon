@@ -12,12 +12,12 @@ api.interceptors.request.use(
   (config) => {
     // Get the token from localStorage
     const token = localStorage.getItem('token');
-    
+
     // If the token exists, add it to the Authorization header
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -36,12 +36,6 @@ export const userAPI = {
   getMe: () => api.get('/users/me'),
   getUser: (id) => api.get(`/users/${id}`),
   updateMe: (updatedData) => api.put('/users/me', updatedData),
-  
-  // --- ADD THIS NEW FUNCTION ---
-  /**
-   * Searches for users based on query parameters.
-   * @param {object} params - e.g., { name: 'Sarah', location: 'NY', skill: 'react' }
-   */
   searchUsers: (params) => api.get('/users/search', { params }),
 };
 
@@ -53,6 +47,16 @@ export const projectAPI = {
 
 export const skillAPI = {
   getAllSkillTags: () => api.get('/skills/tags'),
+};
+
+// --- MODIFIED SESSION API ---
+export const sessionAPI = {
+  createSession: (sessionData) => api.post('/sessions', sessionData),
+  getSessionsForUser: () => api.get('/sessions/me'),
+  // --- ADDED PUBLIC SESSIONS FUNCTION ---
+  getAllPublicSessions: () => api.get('/sessions/public'),
+  // ------------------------------------
+  joinSession: (id) => api.post(`/sessions/${id}/join`),
 };
 
 export default api;

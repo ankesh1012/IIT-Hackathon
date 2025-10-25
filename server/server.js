@@ -21,6 +21,8 @@ connectDB();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/skills', require('./routes/skills'));
+// --- ADD THIS NEW LINE ---
+app.use('/api/sessions', require('./routes/sessions')); 
 
 // Error handling middleware
 app.use((err, req, res, next) => {
