@@ -1,5 +1,7 @@
+// client/src/components/Navbar.jsx
+
 import { Link, useNavigate } from "react-router-dom";
-import { Users, Menu, UserCircle, Sun, Moon } from "lucide-react";
+import { Users, Menu, UserCircle, Sun, Moon, Link2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button.jsx";
 import { useAuthContext } from "../hooks/useAuthContext.jsx";
@@ -53,6 +55,9 @@ const Navbar = () => {
             <Link to="/projects" className={navLinkClasses}>
               Projects
             </Link>
+            
+            
+            
             <Link to="/how-it-works" className={navLinkClasses}>
               How It Works
             </Link>
@@ -117,6 +122,9 @@ const Navbar = () => {
             >
               Projects
             </Link>
+            
+           
+            
             <Link
               to="/how-it-works"
               className="block px-4 py-2 hover:bg-muted rounded-lg transition-smooth"

@@ -1,3 +1,5 @@
+// client/src/App.jsx
+
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -13,6 +15,9 @@ import Credits from './pages/Credits';
 import Settings from './pages/Settings';
 import AccountPage from './pages/AccountPage';
 import { AuthContextProvider } from '@/context/AuthContext';
+
+// --- 1. IMPORT THE NEW PAGES ---
+import UserProfilePage from './pages/UserProfilePage';
 
 function App() {
   return (
@@ -36,6 +41,13 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/account" element={<AccountPage />} />
+
+            {/* --- 2. ADD THE NEW ROUTES --- */}
+           
+            <Route 
+              path="/users/:id" 
+              element={<UserProfilePage />} 
+            />
 
             {/* Not Found Page */}
             <Route path="*" element={<NotFound />} />

@@ -36,6 +36,13 @@ export const userAPI = {
   getMe: () => api.get('/users/me'),
   getUser: (id) => api.get(`/users/${id}`),
   updateMe: (updatedData) => api.put('/users/me', updatedData),
+  
+  // --- ADD THIS NEW FUNCTION ---
+  /**
+   * Searches for users based on query parameters.
+   * @param {object} params - e.g., { name: 'Sarah', location: 'NY', skill: 'react' }
+   */
+  searchUsers: (params) => api.get('/users/search', { params }),
 };
 
 export const projectAPI = {
@@ -44,10 +51,8 @@ export const projectAPI = {
   joinProject: (id) => api.post(`/projects/${id}/join`),
 };
 
-// --- ADD THIS NEW EXPORT ---
 export const skillAPI = {
   getAllSkillTags: () => api.get('/skills/tags'),
 };
-// -------------------------
 
 export default api;
