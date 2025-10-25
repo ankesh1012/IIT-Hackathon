@@ -1,33 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { User, MapPin, BookText, Sparkles, Lock, X, Plus, CheckCircle } from 'lucide-react';
+// client/src/pages/AccountPage.jsx
+
+import React, { useState, useEffect, useRef } from 'react'; // Import useRef
+import { User, MapPin, BookText, Sparkles, Lock, X, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
 import { Textarea } from "@/components/ui/textarea.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card.jsx";
-
-// 1. Import the authentication context hook
 import { useAuthContext } from '@/hooks/useAuthContext.jsx';
-// 2. Import your userAPI
-import { userAPI } from '@/lib/api.js'; // <-- IMPORT THE API
+// Import both userAPI and new skillAPI
+import { userAPI, skillAPI } from '@/lib/api.js';
 
 // --- Main AccountPage Component ---
 export default function AccountPage() {
   // 3. Get user, token, and the login function from context
-  const { user, token, login } = useAuthContext(); // <-- Get token and login
+  const { user, token, login } = useAuthContext();
 
   // --- State ---
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
-  const [skills, setSkills] = useState([]); // <-- Initialize as empty
-  const [newSkill, setNewSkill] = useState('');
+  const [skills, setSkills] = useState([]); // User's current skills
+  const [newSkill, setNewSkill] = useState(''); // Text in the input box
+  
+  // --- NEW STATE FOR AUTOCOMPLETE ---
+  const [allSkills, setAllSkills] = useState([]); // All skills from DB
+  const [suggestions, setSuggestions] = useState([]); // Filtered suggestions
+  const [isSkillInputFocused, setIsSkillInputFocused] = useState(false);
+  
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState({ message: '', type: '' });
-  const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Ref to detect clicks outside the skills input area
+  const skillsInputRef = useRef(null);
 
   // 4. Populate form with user data
   useEffect(() => {
@@ -35,48 +44,102 @@ export default function AccountPage() {
       setUsername(user.name || '');
       setBio(user.bio || 'Tell us a little about yourself...');
       setLocation(user.location || '');
-      // Load skills. Your backend populates skills as objects,
-      // but we just want the names for the frontend state.
       setSkills(user.skills ? user.skills.map(skill => skill.name) : []);
     }
   }, [user]);
 
-  // --- Handlers ---
-  const handleAddSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()]);
+  // --- NEW EFFECT: Fetch all skills on mount ---
+  useEffect(() => {
+    const fetchAllSkills = async () => {
+      try {
+        const response = await skillAPI.getAllSkillTags();
+        // Store just the names for easier filtering
+        setAllSkills(response.data.map(skill => skill.name));
+      } catch (error) {
+        console.error("Failed to fetch skills list:", error);
+      }
+    };
+    fetchAllSkills();
+  }, []); // Runs once on component mount
+
+  // --- NEW: Close suggestions when clicking outside ---
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (skillsInputRef.current && !skillsInputRef.current.contains(event.target)) {
+        setIsSkillInputFocused(false);
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // --- MODIFIED: handleAddSkill now takes a name ---
+  const handleAddSkill = (skillName) => {
+    const trimmedName = skillName.trim().toLowerCase(); // Standardize to lowercase
+    if (trimmedName && !skills.includes(trimmedName)) {
+      setSkills([...skills, trimmedName]);
       setNewSkill('');
-      setStatusMessage({ message: 'Skill added (click Save to confirm)!', type: 'success' });
+      setSuggestions([]); // Clear suggestions
+      setIsSkillInputFocused(false); // Hide box
+      setStatusMessage({ message: 'Skill added (click Save)!', type: 'success' });
       setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
-    } else if (skills.includes(newSkill.trim())) {
+    } else if (skills.includes(trimmedName)) {
       setStatusMessage({ message: 'Skill already added.', type: 'error' });
+      setNewSkill('');
+      setSuggestions([]);
+      setIsSkillInputFocused(false);
       setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
     }
   };
 
   const handleRemoveSkill = (indexToRemove) => {
     setSkills(skills.filter((_, index) => index !== indexToRemove));
-    setStatusMessage({ message: 'Skill removed (click Save to confirm).', type: 'success' });
+    setStatusMessage({ message: 'Skill removed (click Save).', type: 'success' });
     setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
   };
 
-  /**
-   * Handles the main form submission.
-   */
-  const handleSubmit = async (e) => { // <-- Make this async
-    console.log("Submitting form..."); // <-- Your console log
+  // --- NEW: Handle typing in the skill input ---
+  const handleSkillInputChange = (e) => {
+    const value = e.target.value;
+    setNewSkill(value);
+    setIsSkillInputFocused(true);
+
+    if (value.length > 0) {
+      const filteredSuggestions = allSkills
+        .filter(skill => 
+          skill.toLowerCase().startsWith(value.toLowerCase()) && // Check startsWith
+          !skills.includes(skill) // Don't suggest skills already added
+        )
+        .slice(0, 10); // Show max 10 suggestions
+      setSuggestions(filteredSuggestions);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  // --- NEW: Handle clicking a suggestion ---
+  const handleSuggestionClick = (skillName) => {
+    handleAddSkill(skillName); // Add skill directly on click
+  };
+
+  // --- handleSubmit is unchanged, it's already correct ---
+  const handleSubmit = async (e) => {
+    console.log("Submitting form...");
     e.preventDefault();
     setStatusMessage({ message: '', type: '' });
-    setIsLoading(true); // <-- Set loading
+    setIsLoading(true);
 
-    // --- Password Validation ---
+    // ... (Password Validation is unchanged) ...
     if (newPassword || confirmPassword) {
       if (newPassword !== confirmPassword) {
         setStatusMessage({ message: 'New passwords do not match.', type: 'error' });
         setIsLoading(false);
         return;
       }
-      if (newPassword.length < 8) { // Your model has minlength 6, but 8 is safer
+      if (newPassword.length < 8) {
         setStatusMessage({ message: 'New password must be at least 8 characters long.', type: 'error' });
         setIsLoading(false);
         return;
@@ -88,48 +151,35 @@ export default function AccountPage() {
       }
     }
 
-    // --- 5. REAL API Call ---
+    // --- API Call is unchanged ---
     try {
-      // Build the payload
       const updatedData = {
-        username: username, // Your backend controller maps this to 'name'
+        username: username,
         bio: bio,
         location: location,
         skills: skills, // Send the array of strings
       };
 
-      // Add password fields only if they are filled
       if (newPassword && currentPassword) {
         updatedData.currentPassword = currentPassword;
         updatedData.newPassword = newPassword;
       }
 
-      // Call the API
       const response = await userAPI.updateMe(updatedData);
       
-      // `response.data` is the *updated user object* from the backend
+      login(response.data, token); // Update global state
 
-      // --- 6. Update Global State ---
-      // This is the most important step!
-      // Use the 'login' function to update AuthContext and localStorage
-      login(response.data, token);
-
-      // Show success message
       setStatusMessage({ message: 'Account settings saved successfully!', type: 'success' });
       
-      // Clear password fields
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
     } catch (error) {
-      // Show error message from API
       const message = error.response?.data?.message || 'Failed to update settings.';
       setStatusMessage({ message, type: 'error' });
     } finally {
-      setIsLoading(false); // <-- Stop loading
-      
-      // Hide status message after a few seconds
+      setIsLoading(false);
       setTimeout(() => setStatusMessage({ message: '', type: '' }), 3000);
     }
   };
@@ -141,11 +191,6 @@ export default function AccountPage() {
 
   return (
     <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto">
-      
-      {/* --- FIX PART 1 ---
-        Remove the onSubmit handler from the <Card> component.
-        The 'as="form"' prop is fine, but the onSubmit event isn't firing.
-      */}
       <Card as="form">
         
         <CardHeader>
@@ -154,17 +199,15 @@ export default function AccountPage() {
           </CardTitle>
         </CardHeader>
 
-        {/* --- CardContent is unchanged --- */}
         <CardContent className="space-y-8">
           
-          {/* --- Section: Profile --- */}
+          {/* --- Section: Profile (Unchanged) --- */}
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold flex items-center">
               <User size={24} className="mr-3" />
               Profile
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Username */}
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -174,7 +217,6 @@ export default function AccountPage() {
                   autoComplete="username"
                 />
               </div>
-              {/* Location */}
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Input
@@ -186,7 +228,6 @@ export default function AccountPage() {
                 />
               </div>
             </div>
-            {/* Bio */}
             <div className="space-y-2">
               <Label htmlFor="bio" className="flex items-center">
                 <BookText size={16} className="mr-2" />
@@ -204,26 +245,27 @@ export default function AccountPage() {
 
           <hr />
 
-          {/* --- Section: Skills --- */}
-          <div className="space-y-6">
+          {/* --- Section: Skills (MODIFIED) --- */}
+          <div className="space-y-6" ref={skillsInputRef}> {/* Add ref here */}
             <h2 className="text-2xl font-semibold flex items-center">
               <Sparkles size={24} className="mr-3" />
               Skills
             </h2>
-            {/* List of current skills */}
+            
+            {/* List of current skills (Unchanged, but render logic simplified) */}
             <div className="flex flex-wrap gap-3">
               {skills.length > 0 ? (
                 skills.map((skill, index) => (
-                  <Badge variant="secondary" key={index} className="flex items-center gap-2">
-                    {/* Display the skill name. If skill is an object (from initial load), use skill.name. If it's a string (just added), use skill. */}
-                    {typeof skill === 'object' ? skill.name : skill}
+                  <Badge variant="secondary" key={index} className="flex items-center gap-2 capitalize">
+                    {/* The state `skills` is just strings, so render `skill` */}
+                    {skill}
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5 rounded-full"
                       onClick={() => handleRemoveSkill(index)}
-                      aria-label={`Remove ${typeof skill === 'object' ? skill.name : skill}`}
+                      aria-label={`Remove ${skill}`}
                     >
                       <X size={14} />
                     </Button>
@@ -233,36 +275,66 @@ export default function AccountPage() {
                 <p className="text-sm text-muted-foreground">No skills added yet.</p>
               )}
             </div>
-            {/* Add new skill input */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Input
-                type="text"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                placeholder="Add a new skill (e.g., Python)"
-                className="flex-grow"
-              />
-              <Button
-                type="button"
-                onClick={handleAddSkill}
-                className="flex-shrink-0"
-              >
-                <Plus size={18} className="mr-2" />
-                Add Skill
-              </Button>
+            
+            {/* Add new skill input (MODIFIED for autocomplete) */}
+            <div className="relative"> {/* NEW: Relative container for suggestions */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Input
+                  type="text"
+                  value={newSkill}
+                  onChange={handleSkillInputChange} // Use new handler
+                  onFocus={() => setIsSkillInputFocused(true)} // Show on focus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSkill(newSkill);
+D                    }
+                  }}
+                  placeholder="Type to search skills..."
+                  className="flex-grow"
+                  autoComplete="off" // Disable browser autocomplete
+                />
+                <Button
+                  type="button"
+                  onClick={() => handleAddSkill(newSkill)} // Pass newSkill
+                  className="flex-shrink-0"
+                >
+                  <Plus size={18} className="mr-2" />
+                  Add Skill
+                </Button>
+              </div>
+
+              {/* --- NEW: Suggestions Box --- */}
+              {isSkillInputFocused && suggestions.length > 0 && (
+                <div className="absolute z-10 w-full sm:w-[calc(100%-120px)] mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="p-3 hover:bg-muted cursor-pointer text-sm capitalize"
+                      // Use onMouseDown to fire before the input blurs
+                      onMouseDown={(e) => {
+                        e.preventDefault(); 
+                        handleSuggestionClick(suggestion);
+                      }}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           <hr />
 
-          {/* --- Section: Change Password --- */}
+          {/* --- Section: Change Password (Unchanged) --- */}
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold flex items-center">
               <Lock size={24} className="mr-3" />
               Change Password
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* ... (password inputs are unchanged) ... */}
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
@@ -298,7 +370,7 @@ export default function AccountPage() {
           
         </CardContent>
 
-        {/* --- Footer: Actions --- */}
+        {/* --- Footer: Actions (Unchanged) --- */}
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="w-full sm:w-auto">
             {statusMessage.message && (
@@ -307,11 +379,6 @@ export default function AccountPage() {
               </p>
             )}
           </div>
-
-          {/* --- FIX PART 2 ---
-            Change type="submit" to type="button"
-            Add the onClick={handleSubmit} handler directly to the button.
-          */}
           <Button 
             type="button" 
             onClick={handleSubmit} 

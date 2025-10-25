@@ -25,7 +25,7 @@ api.interceptors.request.use(
   }
 );
 
-// 3. Update your existing API definitions to use the new `api` instance
+// 3. API definitions
 
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
@@ -35,12 +35,6 @@ export const authAPI = {
 export const userAPI = {
   getMe: () => api.get('/users/me'),
   getUser: (id) => api.get(`/users/${id}`),
-  
-  // --- ADD THIS FUNCTION ---
-  /**
-   * Updates the currently authenticated user's profile.
-   * @param {object} updatedData - An object with fields to update (e.g., { username, bio, skills })
-   */
   updateMe: (updatedData) => api.put('/users/me', updatedData),
 };
 
@@ -49,5 +43,11 @@ export const projectAPI = {
   createProject: (projectData) => api.post('/projects', projectData),
   joinProject: (id) => api.post(`/projects/${id}/join`),
 };
+
+// --- ADD THIS NEW EXPORT ---
+export const skillAPI = {
+  getAllSkillTags: () => api.get('/skills/tags'),
+};
+// -------------------------
 
 export default api;
