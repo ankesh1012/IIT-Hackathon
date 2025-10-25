@@ -1,165 +1,107 @@
-import { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, MapPin, Star, Filter } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { userAPI } from "@/lib/api";
+import React, { useState } from 'react';
+import { Input } from '../components/ui/input.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card.jsx';
+import { Badge } from '../components/ui/badge.jsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.jsx';
+import { Search, MapPin, Star } from 'lucide-react';
 
-const Discover = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [radius, setRadius] = useState("5");
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Mock data for user profile cards
+const mockUsers = [
+  { id: 1, name: 'Jane Doe', location: 'New York, NY', radius: 2, rating: 4.5, skills: ['Gardening', 'Plumbing'], avatar: 'https://placehold.co/100x100/E2E8F0/64748B?text=JD' },
+  { id: 2, name: 'John Smith', location: 'Brooklyn, NY', radius: 5, rating: 5.0, skills: ['Math Tutor', 'JavaScript'], avatar: 'https://placehold.co/100x100/E2E8F0/64748B?text=JS' },
+  { id: 3, name: 'Alex Johnson', location: 'Queens, NY', radius: 8, rating: 4.0, skills: ['Painting', 'Home Repair'], avatar: 'https://placehold.co/100x100/E2E8F0/64748B?text=AJ' },
+];
 
-  useEffect(() => {
-    fetchUsers();
-  }, [searchTerm, radius]);
+/**
+ * Discover Page (Local Connections)
+ * This page allows users to find and connect with skilled neighbors.
+ */
+export default function Discover() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [radius, setRadius] = useState('5'); // Default 5km radius
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await userAPI.getUsers({ search: searchTerm });
-      setUsers(response.data);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getInitials = (name) => {
-    return name
-      .split(" ")
-      .map(word => word[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // TODO: Add state for filtered users
+  // TODO: Implement fetch logic in a useEffect to get users from the API
+  // based on searchTerm and radius
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-12">
-        <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8 space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold">Discover Skills Near You</h1>
-            <p className="text-xl text-muted-foreground">
-              Connect with talented neighbors and exchange skills in your community
-            </p>
-          </div>
+    <div className="container mx-auto p-4 md:p-8">
+      <header className="mb-8 text-center">
+        <h1 className="text-4xl font-bold mb-2">Local Connections</h1>
+        <p className="text-lg text-gray-600">Discover and connect with skilled neighbors in your area.</p>
+      </header>
 
-          {/* Search and Filters */}
-          <div className="mb-8 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search for skills... (e.g., Guitar, Coding, Gardening)"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12"
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Select value={radius} onValueChange={setRadius}>
-                  <SelectTrigger className="w-[150px] h-12">
-                    <SelectValue placeholder="Radius" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 mile</SelectItem>
-                    <SelectItem value="5">5 miles</SelectItem>
-                    <SelectItem value="10">10 miles</SelectItem>
-                    <SelectItem value="25">25 miles</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button variant="outline" size="lg">
-                  <Filter className="w-5 h-5 mr-2" />
-                  Filters
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Results */}
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No users found</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {users.map((user) => (
-                <Card 
-                  key={user._id}
-                  className="group hover:shadow-soft transition-smooth cursor-pointer border-2"
-                >
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <Avatar className="w-16 h-16 border-2 border-primary/20">
-                        <AvatarFallback className="text-lg gradient-hero text-primary-foreground">
-                          {getInitials(user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-grow">
-                        <h3 className="font-bold text-lg group-hover:text-primary transition-smooth">
-                          {user.name}
-                        </h3>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <MapPin className="w-4 h-4" />
-                          <span>{user.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Star className="w-4 h-4 fill-accent text-accent" />
-                          <span className="font-semibold">{user.rating || 0}</span>
-                          <span className="text-sm text-muted-foreground">({user.reviewCount || 0})</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {user.bio || "No bio available"}
-                    </p>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {user.skills?.slice(0, 3).map((skill, index) => (
-                        <Badge 
-                          key={index}
-                          variant="secondary"
-                          className="transition-smooth hover:scale-105"
-                        >
-                          {skill.name}
-                        </Badge>
-                      ))}
-                    </div>
-                    
-                    <Button className="w-full" variant="outline">
-                      View Profile
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+      {/* Search and Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8 p-4 bg-white rounded-lg shadow">
+        <div className="relative flex-grow">
+          <Input
+            type="text"
+            placeholder="Search by skill (e.g., 'Plumber', 'Tutor')..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
         </div>
-      </main>
+        <Select value={radius} onValueChange={setRadius}>
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Select radius" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">Within 1 km</SelectItem>
+            <SelectItem value="5">Within 5 km</SelectItem>
+            <SelectItem value="10">Within 10 km</SelectItem>
+            <SelectItem value="25">Within 25 km</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button className="w-full md:w-auto">
+          <Search className="mr-2 h-4 w-4" /> Search
+        </Button>
+      </div>
 
-      <Footer />
+      {/* Results Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {mockUsers.map((user) => (
+          <UserProfileCard key={user.id} user={user} />
+        ))}
+      </div>
     </div>
   );
-};
+}
 
-export default Discover;
+/**
+ * Reusable User Profile Card component
+ */
+function UserProfileCard({ user }) {
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="flex flex-row items-center gap-4">
+        <img src={user.avatar} alt={user.name} className="h-20 w-20 rounded-full" />
+        <div>
+          <CardTitle className="text-xl font-bold">{user.name}</CardTitle>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <MapPin className="h-4 w-4" />
+            <span>{user.location} ({user.radius}km away)</span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <h4 className="font-semibold mb-2">Top Skills:</h4>
+        <div className="flex flex-wrap gap-2">
+          {user.skills.map((skill) => (
+            <Badge key={skill} variant="secondary">{skill}</Badge>
+          ))}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between items-center">
+        <div className="flex items-center gap-1">
+          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+          <span className="font-bold">{user.rating.toFixed(1)}</span>
+        </div>
+        {/* This button should link to the new Profile.jsx page */}
+        <Button variant="outline">View Profile</Button>
+      </CardFooter>
+    </Card>
+  );
+}
