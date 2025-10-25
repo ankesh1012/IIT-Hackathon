@@ -1,36 +1,38 @@
 import { Link } from "react-router-dom";
-// Note: I'm importing UserCircle for the account button
-import { Users, Menu, UserCircle } from "lucide-react";
-import { useState } from "react";
-// We are now importing your project's Button component
-import { Button } from "@/components/ui/button";
+import { Users, Menu, UserCircle, Sun, Moon } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  // --- Mock Auth State ---
-  // In a real app, this would come from React Context or a state management library.
-  // We'll toggle this state for demonstration.
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Helper to close the mobile menu on navigation
-  const handleMobileLinkClick = () => {
-    setIsMenuOpen(false);
-  };
-  
-  // Helper to simulate login/logout
-  const toggleLogin = () => {
-    setIsLoggedIn(!isLoggedIn);
-    setIsMenuOpen(false); // Close menu on login/logout
+  // Dark mode state
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
+
+  const toggleDarkMode = () => {
+    setDark(!dark);
   };
 
+  const handleMobileLinkClick = () => setIsMenuOpen(false);
+
+  const toggleLogin = () => {
+    setIsLoggedIn(!isLoggedIn);
+    setIsMenuOpen(false);
+  };
+
+  // Common class for navigation links and toggle button icon color:
+  // text-foreground/80 + hover:text-primary transition
+  const navLinkClasses = "text-foreground/80 hover:text-primary transition-smooth font-medium flex items-center gap-1";
+
   return (
-    // Reverted to your original glass effect styles
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2 group">
-            {/* Reverted to your original gradient-hero styles */}
             <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center transition-bounce group-hover:shadow-glow group-hover:scale-110">
               <Users className="w-6 h-6 text-primary-foreground" />
             </div>
@@ -41,45 +43,57 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {/* Reverted to your original text colors */}
-            <Link to="/discover" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+            <Link to="/discover" className={navLinkClasses}>
               Discover
             </Link>
-            <Link to="/how-it-works" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+            <Link to="/how-it-works" className={navLinkClasses}>
               How It Works
             </Link>
 
-            {/* --- Conditional Auth Buttons (Desktop) --- */}
+            {/* Dark mode toggle button - icon with same color scheme */}
+            <button
+              onClick={toggleDarkMode}
+              className={`${navLinkClasses} p-2 rounded hover:bg-muted transition-smooth`}
+              aria-label="Toggle Dark Mode"
+              title="Toggle Dark Mode"
+            >
+              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            {/* Auth Buttons Desktop */}
             {isLoggedIn ? (
               <>
-                <Link to="/account" className="flex items-center gap-2 text-foreground/80 hover:text-primary transition-smooth font-medium">
+                <Link to="/account" className={navLinkClasses}>
                   <UserCircle size={20} />
                   My Account
                 </Link>
-                {/* Using variant="ghost" from your Button component */}
-                <Button onClick={toggleLogin} variant="ghost">
+                <button
+                  onClick={toggleLogin}
+                  className="text-foreground/80 hover:text-primary transition-smooth font-medium px-4 py-1 rounded"
+                >
                   Log Out
-                </Button>
+                </button>
               </>
             ) : (
               <>
-                <Link to="/auth" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+                <Link to="/auth" className={navLinkClasses}>
                   Sign In
                 </Link>
-                {/* Using variant="hero" from your Button component */}
-                <Button onClick={toggleLogin} variant="hero">
+                <button
+                  onClick={toggleLogin}
+                  className="bg-primary text-primary-foreground px-4 py-1 rounded hover:bg-primary-dark transition"
+                >
                   Get Started (Log In)
-                </Button>
+                </button>
               </>
             )}
-            {/* ------------------------------------------- */}
-
           </div>
 
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 hover:bg-muted rounded-lg transition-smooth"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle Menu"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -87,7 +101,6 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          // Reverted to your original mobile styles
           <div className="md:hidden py-4 border-t space-y-3">
             <Link
               to="/discover"
@@ -103,8 +116,26 @@ const Navbar = () => {
             >
               How It Works
             </Link>
-            
-            {/* --- Conditional Auth Buttons (Mobile) --- */}
+            {/* Dark mode toggle in mobile menu */}
+            <button
+              onClick={() => {
+                toggleDarkMode();
+                handleMobileLinkClick();
+              }}
+              className="block w-full text-left px-4 py-2 hover:bg-muted rounded-lg transition-smooth flex items-center gap-2"
+              aria-label="Toggle Dark Mode"
+            >
+              {dark ? (
+                <>
+                  <Sun className="w-5 h-5" /> Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon className="w-5 h-5" /> Dark Mode
+                </>
+              )}
+            </button>
+
             {isLoggedIn ? (
               <>
                 <Link
@@ -114,12 +145,12 @@ const Navbar = () => {
                 >
                   My Account
                 </Link>
-                <div className="px-4">
-                  {/* Using variant="ghost" from your Button component */}
-                  <Button onClick={toggleLogin} variant="ghost" className="w-full text-left justify-start px-0">
-                    Log Out
-                  </Button>
-                </div>
+                <button
+                  onClick={toggleLogin}
+                  className="block w-full px-4 py-2 text-left hover:bg-muted rounded-lg transition-smooth"
+                >
+                  Log Out
+                </button>
               </>
             ) : (
               <>
@@ -130,16 +161,14 @@ const Navbar = () => {
                 >
                   Sign In
                 </Link>
-                <div className="px-4">
-                  {/* Using variant="hero" from your Button component */}
-                  <Button onClick={toggleLogin} variant="hero" className="w-full">
-                    Get Started (Log In)
-                  </Button>
-                </div>
+                <button
+                  onClick={toggleLogin}
+                  className="block w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-dark transition"
+                >
+                  Get Started (Log In)
+                </button>
               </>
             )}
-            {/* --------------------------------------- */}
-
           </div>
         )}
       </div>
@@ -148,4 +177,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

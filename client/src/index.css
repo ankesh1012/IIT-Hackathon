@@ -150,78 +150,24 @@
   }
 
   .dark {
-    /* ===== DARK MODE - EARTHEN LUXE ===== */
-    --background: 25 33% 8%;
+    --background: 220 13% 8%;
     --foreground: 33 32% 93%;
-
-    --card: 25 33% 10%;
+    --card: 220 13% 12%;
     --card-foreground: 33 32% 93%;
-
-    --popover: 25 33% 10%;
-    --popover-foreground: 33 32% 93%;
-
-    /* Lighter versions for dark mode */
-    --primary: 34 25% 50%;
-    --primary-foreground: 25 33% 8%;
-    --primary-light: 34 25% 65%;
-    --primary-dark: 34 25% 38%;
-    --primary-glow: 34 25% 58%;
-
-    --secondary: 33 32% 75%;
-    --secondary-foreground: 25 33% 8%;
-    --secondary-light: 33 32% 85%;
-    --secondary-dark: 33 32% 62%;
-    --secondary-glow: 33 32% 80%;
-
-    --accent: 201 30% 35%;
+    --primary: 34 24% 38%;
+    --primary-foreground: 33 32% 93%;
+    --secondary: 33 28% 67%;
+    --secondary-foreground: 220 13% 12%;
+    --accent: 201 26% 24%;
     --accent-foreground: 33 32% 93%;
-    --accent-light: 201 30% 50%;
-    --accent-dark: 201 30% 22%;
-
-    --success: 34 35% 55%;
-    --success-foreground: 25 33% 8%;
-    --success-light: 34 35% 68%;
-
-    --warning: 38 60% 68%;
-    --warning-foreground: 25 33% 8%;
-    --warning-light: 38 60% 80%;
-
-    --info: 201 25% 48%;
-    --info-foreground: 33 32% 93%;
-    --info-light: 201 25% 62%;
-
-    --muted: 25 25% 18%;
-    --muted-foreground: 33 25% 65%;
-
-    --destructive: 0 70% 60%;
-    --destructive-foreground: 33 32% 93%;
-
-    --border: 25 25% 22%;
-    --input: 25 25% 22%;
-    --ring: 34 25% 50%;
-
-    /* Dark mode gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(34 25% 50%) 0%, hsl(33 32% 75%) 50%, hsl(201 30% 35%) 100%);
-    --gradient-hero-alt: linear-gradient(120deg, hsl(201 30% 35%) 0%, hsl(34 25% 50%) 50%, hsl(33 32% 75%) 100%);
-
-    --gradient-card: linear-gradient(180deg, hsl(25 33% 10%) 0%, hsl(25 33% 13%) 100%);
-    --gradient-card-hover: linear-gradient(180deg, hsl(25 33% 10%) 0%, hsl(34 30% 12%) 100%);
-
-    --gradient-mesh:
-      radial-gradient(at 0% 0%, hsl(34 25% 22%) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsl(201 30% 22%) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsl(33 32% 25%) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsl(34 35% 25%) 0px, transparent 50%);
-
-    --shadow-soft: 0 2px 20px -3px hsl(0 0% 0% / 0.35),
-      0 2px 10px -4px hsl(0 0% 0% / 0.25);
-    --shadow-medium: 0 4px 30px -5px hsl(0 0% 0% / 0.45),
-      0 4px 15px -6px hsl(0 0% 0% / 0.32);
-    --shadow-large: 0 10px 50px -10px hsl(0 0% 0% / 0.55),
-      0 8px 25px -12px hsl(0 0% 0% / 0.38);
-    --shadow-glow-luxe: 0 0 45px hsl(34 25% 58% / 0.35),
-      0 0 28px hsl(33 32% 80% / 0.3),
-      0 0 18px hsl(201 30% 50% / 0.25);
+    --muted: 220 13% 16%;
+    --muted-foreground: 33 32% 95%;
+    --border: 220 13% 20%;
+    --input: 220 13% 15%;
+    --ring: 34 24% 38%;
+    --success: 120 4% 28%;
+    --warning: 48 100% 38%;
+    --destructive: 0 70% 30%;
   }
 }
 
