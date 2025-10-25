@@ -6,13 +6,12 @@ import Auth from './pages/Auth';
 import Discover from './pages/Discover';
 import HowItWorksPage from './pages/HowItWorksPage';
 import NotFound from './pages/NotFound';
-
-// Import the new pages
 import Bookings from './pages/Bookings';
 import Profile from './pages/Profile';
 import Projects from './pages/Projects';
 import Credits from './pages/Credits';
 import Settings from './pages/Settings';
+import AccountPage from './pages/AccountPage';
 
 function App() {
   return (
@@ -49,6 +48,8 @@ function App() {
 
           {/* Not Found Page */}
           <Route path="*" element={<NotFound />} />
+
+          <Route path="/account" element={<AccountPage />} />
         </Routes>
       </main>
       <Footer />
