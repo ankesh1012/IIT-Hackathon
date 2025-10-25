@@ -1,6 +1,9 @@
+import { useEffect } from "react";
 import { Card, CardContent } from '../components/ui/card.jsx';
 import { Network, Calendar, Award, Lightbulb, Heart, Shield } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const features = [
   {
@@ -31,7 +34,7 @@ const features = [
     icon: Lightbulb,
     title: "Community Projects",
     description: "Propose or join collaborative projects that strengthen your neighborhood",
-    image: "/assets/feature-projects.png", // NO image, use only icon
+    image: "/assets/feature-projects.png",
     color: "success",
     path: "/projects"
   },
@@ -53,16 +56,66 @@ const features = [
   }
 ];
 
+gsap.registerPlugin(ScrollTrigger);
+
+const tracedPath = "M664.688 198.753C728.487 330.699 750.592 561.368 689.442 680.253C569.086 914.246 -135.883 713.673 77.8551 393.315C206.866 199.949 475.748 144.305 664.688 198.753";
+
 const Features = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const path = document.getElementById("scroll-animated-path");
+    if (!path) return;
+    const pathLength = path.getTotalLength();
+    path.style.strokeDasharray = pathLength;
+    path.style.strokeDashoffset = pathLength;
+
+    gsap.to(path, {
+      strokeDashoffset: 0,
+      ease: "none",
+      scrollTrigger: {
+        trigger: "#scroll-path-svg",
+        start: "top bottom",
+        end: "bottom top",
+        scrub: true,
+      }
+    });
+  }, []);
 
   const handleCardClick = (path) => {
     navigate(path);
   };
 
   return (
-    <section className="py-24 bg-muted/30">
-      <div className="container mx-auto px-4">
+    <section className="py-24 bg-muted/30 relative overflow-hidden">
+      {/* Animated Traced Line */}
+      <svg
+        id="scroll-path-svg"
+        width="100%"
+        height="420"
+        viewBox="0 0 1440 420"
+        fill="none"
+        className="absolute left-0 right-0 top-0 pointer-events-none z-0"
+      >
+        <path
+          id="scroll-animated-path"
+          d="
+      M 40 100
+      Q 300 220, 600 150
+      Q 900 80, 800 260
+      Q 700 370, 1100 330
+      Q 1400 300, 1280 400
+    "
+          stroke="hsl(var(--primary))"
+          strokeWidth="18"
+          fill="none"
+          strokeLinecap="round"
+        />
+      </svg>
+
+
+
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16 space-y-4">
           <h2 className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             Everything You Need to Build Community
@@ -71,7 +124,6 @@ const Features = () => {
             Powerful features designed to make skill sharing safe, easy, and rewarding
           </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => {
             const Icon = feature.icon;
@@ -82,7 +134,6 @@ const Features = () => {
                 style={{ animationDelay: `${index * 100}ms`, animationDuration: '700ms' }}
                 onClick={() => handleCardClick(feature.path)}
               >
-                {/* Show image if present, otherwise only the icon */}
                 {feature.image &&
                   <div className="relative h-40 w-full overflow-hidden bg-card">
                     <img
@@ -95,7 +146,7 @@ const Features = () => {
                 }
                 <CardContent className="p-6 space-y-4">
                   <div className={`w-12 h-12 rounded-xl gradient-${feature.color} flex items-center justify-center group-hover:scale-110 transition-bounce`}>
-                    <Icon className="w-6 h-6 text-primary-foreground" />
+                    <Icon className="w-6 h-6 text-black dark:text-primary-foreground" />
                   </div>
                   <h3 className="text-xl font-bold">{feature.title}</h3>
                   <p className="text-muted-foreground">
