@@ -1,37 +1,41 @@
-import { Link, useNavigate } from "react-router-dom"; // 1. Import useNavigate
-import { Users, Menu, UserCircle } from "lucide-react";
-import { useState } from "react";
-// 2. Fix path to ui component using relative path
-import { Button } from "./ui/button.jsx"; 
-
-// 3. Import the useAuthContext hook using relative path
-import { useAuthContext } from "../hooks/useAuthContext.jsx"; // 4. Fix path to hook
+import { Link, useNavigate } from "react-router-dom";
+import { Users, Menu, UserCircle, Sun, Moon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button } from "./ui/button.jsx";
+import { useAuthContext } from "../hooks/useAuthContext.jsx";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  // 5. Get user and logout function from context
+  const [dark, setDark] = useState(false);
   const { user, logout } = useAuthContext();
-  const navigate = useNavigate(); // 6. Initialize navigate
+  const navigate = useNavigate();
 
-  // 7. Check auth state
-  const isLoggedIn = !!user; // true if user object exists, false if null
+  const isLoggedIn = !!user;
 
-  const handleMobileLinkClick = () => {
-    setIsMenuOpen(false);
-  };
-  
-  // 8. Create a real logout handler
+  // Toggle dark mode
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
+
+  const toggleDarkMode = () => setDark(!dark);
+
   const handleLogout = () => {
     logout();
-    navigate('/'); // 9. Redirect to home page on logout
-    setIsMenuOpen(false); // Close menu on logout
+    navigate("/");
+    setIsMenuOpen(false);
   };
+
+  const handleMobileLinkClick = () => setIsMenuOpen(false);
+
+  // Common link styles
+  const navLinkClasses =
+    "text-foreground/80 hover:text-primary transition-smooth font-medium flex items-center gap-1";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center transition-bounce group-hover:shadow-glow group-hover:scale-110">
               <Users className="w-6 h-6 text-primary-foreground" />
@@ -43,20 +47,30 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/discover" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+            <Link to="/discover" className={navLinkClasses}>
               Discover
             </Link>
-            <Link to="/projects" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+            <Link to="/projects" className={navLinkClasses}>
               Projects
             </Link>
-            <Link to="/how-it-works" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+            <Link to="/how-it-works" className={navLinkClasses}>
               How It Works
             </Link>
 
-            {/* --- 10. Use real auth state --- */}
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className={`${navLinkClasses} p-2 rounded hover:bg-muted transition-smooth`}
+              aria-label="Toggle Dark Mode"
+              title="Toggle Dark Mode"
+            >
+              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            {/* Auth Buttons */}
             {isLoggedIn ? (
               <>
-                <Link to="/account" className="flex items-center gap-2 text-foreground/80 hover:text-primary transition-smooth font-medium">
+                <Link to="/account" className={navLinkClasses}>
                   <UserCircle size={20} />
                   My Account
                 </Link>
@@ -66,7 +80,7 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link to="/auth" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+                <Link to="/auth" className={navLinkClasses}>
                   Sign In
                 </Link>
                 <Button asChild variant="hero">
@@ -74,14 +88,13 @@ const Navbar = () => {
                 </Button>
               </>
             )}
-            {/* ------------------------------------------- */}
-
           </div>
 
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 hover:bg-muted rounded-lg transition-smooth"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle Menu"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -111,8 +124,28 @@ const Navbar = () => {
             >
               How It Works
             </Link>
-            
-            {/* --- 11. Use real auth state (Mobile) --- */}
+
+            {/* Dark mode toggle (mobile) */}
+            <button
+              onClick={() => {
+                toggleDarkMode();
+                handleMobileLinkClick();
+              }}
+              className="block w-full text-left px-4 py-2 hover:bg-muted rounded-lg transition-smooth flex items-center gap-2"
+              aria-label="Toggle Dark Mode"
+            >
+              {dark ? (
+                <>
+                  <Sun className="w-5 h-5" /> Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon className="w-5 h-5" /> Dark Mode
+                </>
+              )}
+            </button>
+
+            {/* Auth Buttons (mobile) */}
             {isLoggedIn ? (
               <>
                 <Link
@@ -123,7 +156,11 @@ const Navbar = () => {
                   My Account
                 </Link>
                 <div className="px-4">
-                  <Button onClick={handleLogout} variant="ghost" className="w-full text-left justify-start px-0">
+                  <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    className="w-full text-left justify-start px-0"
+                  >
                     Log Out
                   </Button>
                 </div>
@@ -139,12 +176,13 @@ const Navbar = () => {
                 </Link>
                 <div className="px-4">
                   <Button asChild variant="hero" className="w-full">
-                    <Link to="/auth" onClick={handleMobileLinkClick}>Get Started</Link>
+                    <Link to="/auth" onClick={handleMobileLinkClick}>
+                      Get Started
+                    </Link>
                   </Button>
                 </div>
               </>
             )}
-            {/* --------------------------------------- */}
           </div>
         )}
       </div>
@@ -153,5 +191,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-
