@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Users, Star } from "lucide-react";
+import AnimatedCounter from "@/components/AnimatedCounter"; // adjust path if needed
 
 const Hero = () => {
   return (
@@ -11,7 +12,7 @@ const Hero = () => {
           src="/assets/hero-community.png"
           alt="Community Illustration"
           className="w-full h-full object-cover object-center opacity-80"
-          style={{ minHeight: '100%', minWidth: '100%' }}
+          style={{ minHeight: "100%", minWidth: "100%" }}
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/50 via-background/80 to-accent/40" />
@@ -49,22 +50,28 @@ const Hero = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
             <div className="glass p-6 rounded-xl shadow-card hover:shadow-soft transition-smooth">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-primary" />
-                <span className="text-3xl font-bold text-primary">10K+</span>
+                <Users className="w-5 h-5 text-primary animate-spin-slow" />
+                <span className="text-3xl font-bold text-primary">
+                  <AnimatedCounter to={10000} />
+                </span>
               </div>
               <p className="text-muted-foreground">Active Members</p>
             </div>
             <div className="glass p-6 rounded-xl shadow-card hover:shadow-soft transition-smooth">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <MapPin className="w-5 h-5 text-secondary" />
-                <span className="text-3xl font-bold text-secondary">500+</span>
+                <MapPin className="w-5 h-5 text-secondary animate-spin-slow" />
+                <span className="text-3xl font-bold text-secondary">
+                  <AnimatedCounter to={500} />
+                </span>
               </div>
               <p className="text-muted-foreground">Local Communities</p>
             </div>
             <div className="glass p-6 rounded-xl shadow-card hover:shadow-soft transition-smooth">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Star className="w-5 h-5 text-accent" />
-                <span className="text-3xl font-bold text-accent">25K+</span>
+                <Star className="w-5 h-5 text-accent animate-spin-slow" />
+                <span className="text-3xl font-bold text-accent">
+                  <AnimatedCounter to={25000} />
+                </span>
               </div>
               <p className="text-muted-foreground">Skills Shared</p>
             </div>
