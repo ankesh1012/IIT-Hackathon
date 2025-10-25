@@ -1,10 +1,18 @@
+// server/routes/skills.js
 const express = require('express');
 const router = express.Router();
 const skillController = require('../controllers/skillController');
 const { protect } = require('../middleware/auth');
 
+// --- ADD THIS NEW ROUTE ---
+// @route   GET /api/skills/tags
+// @desc    Get all skill names for autocomplete
+// @access  Public
+router.get('/tags', skillController.getAllSkillTags);
+// --------------------------
+
 // @route   GET /api/skills
-// @desc    Get all skills
+// @desc    Get all skills (for marketplace/search)
 // @access  Public
 router.get('/', skillController.getSkills);
 

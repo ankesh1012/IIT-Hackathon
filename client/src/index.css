@@ -221,6 +221,18 @@
 
 @layer utilities {
 
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  /* min-h for card consistency */
+  .min-h-\[2\.5rem\] {
+    min-height: 2.5rem;
+  }
+
   /* ===== Gradient Utilities ===== */
   .gradient-hero {
     background: var(--gradient-hero);

@@ -13,7 +13,14 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Get user from token
+      // --- THIS IS THE FIX ---
+      // Change 'decoded.userId' to 'decoded.id' to match your authController
       req.user = await User.findById(decoded.id).select('-password');
+      // ---------------------
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
 
       next();
     } catch (error) {

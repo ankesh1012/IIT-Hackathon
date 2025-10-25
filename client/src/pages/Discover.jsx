@@ -1,106 +1,304 @@
-import React, { useState } from 'react';
+// client/src/pages/Discover.jsx
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Input } from '../components/ui/input.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card.jsx';
 import { Badge } from '../components/ui/badge.jsx';
+import { Label } from '../components/ui/label.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.jsx';
-import { Search, MapPin, Star } from 'lucide-react';
+import { Search, MapPin, Star, Sparkles, X as XIcon, Loader2 } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { skillAPI, userAPI } from '@/lib/api';
+import { useAuthContext } from '@/hooks/useAuthContext'; // <-- Import useAuthContext
 
-// Mock data for user profile cards
-const mockUsers = [
-  { id: 1, name: 'Jane Doe', location: 'New York, NY', radius: 2, rating: 4.5, skills: ['Gardening', 'Plumbing'], avatar: 'https://placehold.co/100x100/E2E8F0/64748B?text=JD' },
-  { id: 2, name: 'John Smith', location: 'Brooklyn, NY', radius: 5, rating: 5.0, skills: ['Math Tutor', 'JavaScript'], avatar: 'https://placehold.co/100x100/E2E8F0/64748B?text=JS' },
-  { id: 3, name: 'Alex Johnson', location: 'Queens, NY', radius: 8, rating: 4.0, skills: ['Painting', 'Home Repair'], avatar: 'https://placehold.co/100x100/E2E8F0/64748B?text=AJ' },
-];
-
-/**
- * Discover Page (Local Connections)
- * This page allows users to find and connect with skilled neighbors.
- */
+// --- Main Discover Page Component ---
 export default function Discover() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [radius, setRadius] = useState('5'); // Default 5km radius
+  const { user } = useAuthContext(); // <-- Get the logged-in user
 
-  // TODO: Add state for filtered users
-  // TODO: Implement fetch logic in a useEffect to get users from the API
-  // based on searchTerm and radius
+  // State for search filters
+  const [nameQuery, setNameQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [skillQuery, setSkillQuery] = useState('');
+  const [radius, setRadius] = useState('5'); // Radius state (currently not used by backend)
+
+  // State for skill autocomplete
+  const [allSkills, setAllSkills] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSkillInputFocused, setIsSkillInputFocused] = useState(false);
+
+  // State for results
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true); // Set to true initially
+  const [error, setError] = useState(null);
+
+  const skillInputRef = useRef(null);
+
+  // --- NEW: Reusable function to fetch users ---
+  const fetchUsers = async (params) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await userAPI.searchUsers(params);
+      setUsers(response.data);
+    } catch (err) {
+      setError('Failed to fetch users. Please try again.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch all skills for autocomplete on mount
+  useEffect(() => {
+    const fetchAllSkills = async () => {
+      try {
+        const response = await skillAPI.getAllSkillTags();
+        setAllSkills(response.data.map(skill => skill.name));
+      } catch (error) {
+        console.error("Failed to fetch skills list:", error);
+      }
+    };
+    fetchAllSkills();
+  }, []);
+
+  // --- MODIFIED: Fetch initial users ---
+  // If logged in, fetch based on user's skills; otherwise, fetch all.
+  useEffect(() => {
+    const initialParams = {};
+    if (user) {
+      // Send userId to trigger skill matching on backend if no other terms are present
+      initialParams.userId = user._id;
+    }
+    fetchUsers(initialParams);
+  }, [user]); // Re-run if the user logs in or out while on the page
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (skillInputRef.current && !skillInputRef.current.contains(event.target)) {
+        setIsSkillInputFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle skill input typing
+  const handleSkillInputChange = (e) => {
+    const value = e.target.value;
+    setSkillQuery(value);
+    setIsSkillInputFocused(true);
+
+    if (value.length > 0) {
+      setSuggestions(
+        allSkills
+          .filter(s => s.toLowerCase().startsWith(value.toLowerCase()))
+          .slice(0, 5)
+      );
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  // Handle clicking a skill suggestion
+  const handleSuggestionClick = (skillName) => {
+    setSkillQuery(skillName);
+    setSuggestions([]);
+    setIsSkillInputFocused(false);
+  };
+
+  // --- MODIFIED: Handle the main search ---
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    const params = {};
+    if (nameQuery) params.name = nameQuery;
+    if (locationQuery) params.location = locationQuery;
+    if (skillQuery) params.skill = skillQuery;
+    // NOTE: When actually searching, we DON'T send userId,
+    // so the backend performs a standard search, not the default skill match.
+    fetchUsers(params); // Call the reusable fetch function
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
       <header className="mb-8 text-center">
         <h1 className="text-4xl font-bold mb-2">Local Connections</h1>
-        <p className="text-lg text-gray-600">Discover and connect with skilled neighbors in your area.</p>
+        <p className="text-lg text-muted-foreground">Discover and connect with skilled neighbors in your area.</p>
       </header>
 
       {/* Search and Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8 p-4 bg-white rounded-lg shadow">
-        <div className="relative flex-grow">
-          <Input
-            type="text"
-            placeholder="Search by skill (e.g., 'Plumber', 'Tutor')..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+      <form onSubmit={handleSearch} className="p-6 bg-card rounded-lg shadow-soft border mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
+          {/* Name Search */}
+          <div>
+            <Label htmlFor="name" className="text-sm font-medium">Name or Bio</Label>
+            <div className="relative mt-1">
+              <Input
+                id="name"
+                type="text"
+                placeholder="e.g., Jane Doe, 'tutor'"
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
+                className="pl-10"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Location Search */}
+          <div>
+            <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+            <div className="relative mt-1">
+              <Input
+                id="location"
+                type="text"
+                placeholder="e.g., Brooklyn, NY"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                className="pl-10"
+              />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Skill Search (with autocomplete) */}
+          <div className="relative" ref={skillInputRef}>
+            <Label htmlFor="skill" className="text-sm font-medium">Skill</Label>
+            <div className="relative mt-1">
+              <Input
+                id="skill"
+                type="text"
+                placeholder="e.g., Gardening"
+                value={skillQuery}
+                onChange={handleSkillInputChange}
+                onFocus={() => setIsSkillInputFocused(true)}
+                autoComplete="off"
+                className="pl-10"
+              />
+              <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            </div>
+            {/* Suggestions Box */}
+            {isSkillInputFocused && suggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {suggestions.map((s) => (
+                  <div
+                    key={s}
+                    className="p-3 hover:bg-muted cursor-pointer text-sm capitalize"
+                    onMouseDown={() => handleSuggestionClick(s)} // Use onMouseDown
+                  >
+                    {s}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Search Button */}
+          <Button type="submit" className="w-full md:w-auto" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="mr-2 h-4 w-4" />
+            )}
+            Search
+          </Button>
         </div>
-        <Select value={radius} onValueChange={setRadius}>
-          <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Select radius" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">Within 1 km</SelectItem>
-            <SelectItem value="5">Within 5 km</SelectItem>
-            <SelectItem value="10">Within 10 km</SelectItem>
-            <SelectItem value="25">Within 25 km</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button className="w-full md:w-auto">
-          <Search className="mr-2 h-4 w-4" /> Search
-        </Button>
-      </div>
+      </form>
 
       {/* Results Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockUsers.map((user) => (
-          <UserProfileCard key={user.id} user={user} />
-        ))}
+      <div>
+        {isLoading && (
+          <div className="text-center py-10">
+            <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto" />
+            <p className="text-muted-foreground mt-2">Finding connections...</p>
+          </div>
+        )}
+
+        {!isLoading && error && (
+          <div className="text-center py-10 text-destructive">
+            <XIcon className="h-8 w-8 mx-auto" />
+            <p className="mt-2">{error}</p>
+          </div>
+        )}
+
+        {!isLoading && !error && users.length === 0 && (
+          <div className="text-center py-10">
+            <h3 className="text-xl font-semibold">No users found</h3>
+            <p className="text-muted-foreground mt-2">
+              Try adjusting your search filters or broadening your search.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !error && users.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users.map((user) => (
+              <UserProfileCard key={user._id} user={user} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/**
- * Reusable User Profile Card component
- */
+// --- Reusable User Profile Card component (Unchanged) ---
 function UserProfileCard({ user }) {
+  const getInitials = (name) => {
+    return name ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : '';
+  };
+
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col shadow-soft hover:shadow-medium transition-smooth hover-lift h-full">
       <CardHeader className="flex flex-row items-center gap-4">
-        <img src={user.avatar} alt={user.name} className="h-20 w-20 rounded-full" />
+        <Avatar className="h-20 w-20">
+          <AvatarImage src={user.avatar || ''} alt={user.name} />
+          <AvatarFallback className="text-2xl bg-muted">
+            {getInitials(user.name)}
+          </AvatarFallback>
+        </Avatar>
         <div>
           <CardTitle className="text-xl font-bold">{user.name}</CardTitle>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
             <MapPin className="h-4 w-4" />
-            <span>{user.location} ({user.radius}km away)</span>
+            <span>{user.location || 'Location not set'}</span>
           </div>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
         <h4 className="font-semibold mb-2">Top Skills:</h4>
         <div className="flex flex-wrap gap-2">
-          {user.skills.map((skill) => (
-            <Badge key={skill} variant="secondary">{skill}</Badge>
-          ))}
+          {user.skills && user.skills.length > 0 ? (
+            user.skills.slice(0, 5).map((skill) => (
+              <Badge key={skill._id || skill.name} variant="secondary" className="capitalize">{skill.name}</Badge>
+            ))
+          ) : (
+             <p className="text-sm text-muted-foreground">No skills listed.</p>
+          )}
+           {user.skills && user.skills.length > 5 && (
+            <Badge variant="outline">
+              +{user.skills.length - 5} more
+            </Badge>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
-        <div className="flex items-center gap-1">
-          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-          <span className="font-bold">{user.rating.toFixed(1)}</span>
-        </div>
-        {/* This button should link to the new Profile.jsx page */}
-        <Button variant="outline">View Profile</Button>
+        {user.rating > 0 ? (
+          <div className="flex items-center gap-1">
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            <span className="font-bold">{user.rating.toFixed(1)}</span>
+            <span className="text-sm text-muted-foreground ml-1">({user.reviewCount || 0})</span>
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">No reviews yet</div>
+        )}
+
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/users/${user._id}`}>View Profile</Link>
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -1,37 +1,43 @@
-import { Link } from "react-router-dom";
-import { Users, Menu, UserCircle, Sun, Moon } from "lucide-react";
+// client/src/components/Navbar.jsx
+
+import { Link, useNavigate } from "react-router-dom";
+import { Users, Menu, UserCircle, Sun, Moon, Link2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Button } from "./ui/button.jsx";
+import { useAuthContext } from "../hooks/useAuthContext.jsx";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Dark mode state
   const [dark, setDark] = useState(false);
+  const { user, logout } = useAuthContext();
+  const navigate = useNavigate();
 
+  const isLoggedIn = !!user;
+
+  // Toggle dark mode
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  const toggleDarkMode = () => {
-    setDark(!dark);
+  const toggleDarkMode = () => setDark(!dark);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    setIsMenuOpen(false);
   };
 
   const handleMobileLinkClick = () => setIsMenuOpen(false);
 
-  const toggleLogin = () => {
-    setIsLoggedIn(!isLoggedIn);
-    setIsMenuOpen(false);
-  };
-
-  // Common class for navigation links and toggle button icon color:
-  // text-foreground/80 + hover:text-primary transition
-  const navLinkClasses = "text-foreground/80 hover:text-primary transition-smooth font-medium flex items-center gap-1";
+  // Common link styles
+  const navLinkClasses =
+    "text-foreground/80 hover:text-primary transition-smooth font-medium flex items-center gap-1";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center transition-bounce group-hover:shadow-glow group-hover:scale-110">
               <Users className="w-6 h-6 text-primary-foreground" />
@@ -46,11 +52,17 @@ const Navbar = () => {
             <Link to="/discover" className={navLinkClasses}>
               Discover
             </Link>
+            <Link to="/projects" className={navLinkClasses}>
+              Projects
+            </Link>
+            
+            
+            
             <Link to="/how-it-works" className={navLinkClasses}>
               How It Works
             </Link>
 
-            {/* Dark mode toggle button - icon with same color scheme */}
+            {/* Dark mode toggle */}
             <button
               onClick={toggleDarkMode}
               className={`${navLinkClasses} p-2 rounded hover:bg-muted transition-smooth`}
@@ -60,31 +72,25 @@ const Navbar = () => {
               {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {/* Auth Buttons Desktop */}
+            {/* Auth Buttons */}
             {isLoggedIn ? (
               <>
                 <Link to="/account" className={navLinkClasses}>
                   <UserCircle size={20} />
                   My Account
                 </Link>
-                <button
-                  onClick={toggleLogin}
-                  className="text-foreground/80 hover:text-primary transition-smooth font-medium px-4 py-1 rounded"
-                >
+                <Button onClick={handleLogout} variant="ghost">
                   Log Out
-                </button>
+                </Button>
               </>
             ) : (
               <>
                 <Link to="/auth" className={navLinkClasses}>
                   Sign In
                 </Link>
-                <button
-                  onClick={toggleLogin}
-                  className="bg-primary text-primary-foreground px-4 py-1 rounded hover:bg-primary-dark transition"
-                >
-                  Get Started (Log In)
-                </button>
+                <Button asChild variant="hero">
+                  <Link to="/auth">Get Started</Link>
+                </Button>
               </>
             )}
           </div>
@@ -110,13 +116,24 @@ const Navbar = () => {
               Discover
             </Link>
             <Link
+              to="/projects"
+              className="block px-4 py-2 hover:bg-muted rounded-lg transition-smooth"
+              onClick={handleMobileLinkClick}
+            >
+              Projects
+            </Link>
+            
+           
+            
+            <Link
               to="/how-it-works"
               className="block px-4 py-2 hover:bg-muted rounded-lg transition-smooth"
               onClick={handleMobileLinkClick}
             >
               How It Works
             </Link>
-            {/* Dark mode toggle in mobile menu */}
+
+            {/* Dark mode toggle (mobile) */}
             <button
               onClick={() => {
                 toggleDarkMode();
@@ -136,6 +153,7 @@ const Navbar = () => {
               )}
             </button>
 
+            {/* Auth Buttons (mobile) */}
             {isLoggedIn ? (
               <>
                 <Link
@@ -145,12 +163,15 @@ const Navbar = () => {
                 >
                   My Account
                 </Link>
-                <button
-                  onClick={toggleLogin}
-                  className="block w-full px-4 py-2 text-left hover:bg-muted rounded-lg transition-smooth"
-                >
-                  Log Out
-                </button>
+                <div className="px-4">
+                  <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    className="w-full text-left justify-start px-0"
+                  >
+                    Log Out
+                  </Button>
+                </div>
               </>
             ) : (
               <>
@@ -161,12 +182,13 @@ const Navbar = () => {
                 >
                   Sign In
                 </Link>
-                <button
-                  onClick={toggleLogin}
-                  className="block w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-dark transition"
-                >
-                  Get Started (Log In)
-                </button>
+                <div className="px-4">
+                  <Button asChild variant="hero" className="w-full">
+                    <Link to="/auth" onClick={handleMobileLinkClick}>
+                      Get Started
+                    </Link>
+                  </Button>
+                </div>
               </>
             )}
           </div>
