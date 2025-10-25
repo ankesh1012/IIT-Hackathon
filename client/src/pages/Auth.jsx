@@ -9,10 +9,16 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { authAPI } from "@/lib/api";
 
+// 1. Import the useAuthContext hook
+import { useAuthContext } from "@/hooks/useAuthContext";
+
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  
+  // 2. Get the login function from context
+  const { login } = useAuthContext();
 
   // Sign Up State
   const [signupData, setSignupData] = useState({
@@ -35,8 +41,11 @@ const Auth = () => {
 
     try {
       const response = await authAPI.register(signupData);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data));
+      
+      // 3. Use the context login function
+      // It will handle localStorage and update global state
+      login(response.data, response.data.token);
+      
       navigate("/discover");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
@@ -52,8 +61,10 @@ const Auth = () => {
 
     try {
       const response = await authAPI.login(signinData);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data));
+      
+      // 4. Use the context login function
+      login(response.data, response.data.token);
+      
       navigate("/discover");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");

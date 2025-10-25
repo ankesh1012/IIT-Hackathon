@@ -1,36 +1,38 @@
-import { Link } from "react-router-dom";
-// Note: I'm importing UserCircle for the account button
+import { Link, useNavigate } from "react-router-dom"; // 1. Import useNavigate
 import { Users, Menu, UserCircle } from "lucide-react";
 import { useState } from "react";
-// We are now importing your project's Button component
-import { Button } from "@/components/ui/button";
+// 2. Fix path to ui component using relative path
+import { Button } from "./ui/button.jsx"; 
+
+// 3. Import the useAuthContext hook using relative path
+import { useAuthContext } from "../hooks/useAuthContext.jsx"; // 4. Fix path to hook
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
-  // --- Mock Auth State ---
-  // In a real app, this would come from React Context or a state management library.
-  // We'll toggle this state for demonstration.
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // 5. Get user and logout function from context
+  const { user, logout } = useAuthContext();
+  const navigate = useNavigate(); // 6. Initialize navigate
 
-  // Helper to close the mobile menu on navigation
+  // 7. Check auth state
+  const isLoggedIn = !!user; // true if user object exists, false if null
+
   const handleMobileLinkClick = () => {
     setIsMenuOpen(false);
   };
   
-  // Helper to simulate login/logout
-  const toggleLogin = () => {
-    setIsLoggedIn(!isLoggedIn);
-    setIsMenuOpen(false); // Close menu on login/logout
+  // 8. Create a real logout handler
+  const handleLogout = () => {
+    logout();
+    navigate('/'); // 9. Redirect to home page on logout
+    setIsMenuOpen(false); // Close menu on logout
   };
 
   return (
-    // Reverted to your original glass effect styles
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2 group">
-            {/* Reverted to your original gradient-hero styles */}
             <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center transition-bounce group-hover:shadow-glow group-hover:scale-110">
               <Users className="w-6 h-6 text-primary-foreground" />
             </div>
@@ -41,23 +43,24 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {/* Reverted to your original text colors */}
             <Link to="/discover" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
               Discover
+            </Link>
+            <Link to="/projects" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
+              Projects
             </Link>
             <Link to="/how-it-works" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
               How It Works
             </Link>
 
-            {/* --- Conditional Auth Buttons (Desktop) --- */}
+            {/* --- 10. Use real auth state --- */}
             {isLoggedIn ? (
               <>
                 <Link to="/account" className="flex items-center gap-2 text-foreground/80 hover:text-primary transition-smooth font-medium">
                   <UserCircle size={20} />
                   My Account
                 </Link>
-                {/* Using variant="ghost" from your Button component */}
-                <Button onClick={toggleLogin} variant="ghost">
+                <Button onClick={handleLogout} variant="ghost">
                   Log Out
                 </Button>
               </>
@@ -66,9 +69,8 @@ const Navbar = () => {
                 <Link to="/auth" className="text-foreground/80 hover:text-primary transition-smooth font-medium">
                   Sign In
                 </Link>
-                {/* Using variant="hero" from your Button component */}
-                <Button onClick={toggleLogin} variant="hero">
-                  Get Started (Log In)
+                <Button asChild variant="hero">
+                  <Link to="/auth">Get Started</Link>
                 </Button>
               </>
             )}
@@ -87,7 +89,6 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          // Reverted to your original mobile styles
           <div className="md:hidden py-4 border-t space-y-3">
             <Link
               to="/discover"
@@ -97,6 +98,13 @@ const Navbar = () => {
               Discover
             </Link>
             <Link
+              to="/projects"
+              className="block px-4 py-2 hover:bg-muted rounded-lg transition-smooth"
+              onClick={handleMobileLinkClick}
+            >
+              Projects
+            </Link>
+            <Link
               to="/how-it-works"
               className="block px-4 py-2 hover:bg-muted rounded-lg transition-smooth"
               onClick={handleMobileLinkClick}
@@ -104,7 +112,7 @@ const Navbar = () => {
               How It Works
             </Link>
             
-            {/* --- Conditional Auth Buttons (Mobile) --- */}
+            {/* --- 11. Use real auth state (Mobile) --- */}
             {isLoggedIn ? (
               <>
                 <Link
@@ -115,8 +123,7 @@ const Navbar = () => {
                   My Account
                 </Link>
                 <div className="px-4">
-                  {/* Using variant="ghost" from your Button component */}
-                  <Button onClick={toggleLogin} variant="ghost" className="w-full text-left justify-start px-0">
+                  <Button onClick={handleLogout} variant="ghost" className="w-full text-left justify-start px-0">
                     Log Out
                   </Button>
                 </div>
@@ -131,15 +138,13 @@ const Navbar = () => {
                   Sign In
                 </Link>
                 <div className="px-4">
-                  {/* Using variant="hero" from your Button component */}
-                  <Button onClick={toggleLogin} variant="hero" className="w-full">
-                    Get Started (Log In)
+                  <Button asChild variant="hero" className="w-full">
+                    <Link to="/auth" onClick={handleMobileLinkClick}>Get Started</Link>
                   </Button>
                 </div>
               </>
             )}
             {/* --------------------------------------- */}
-
           </div>
         )}
       </div>
@@ -148,4 +153,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
 

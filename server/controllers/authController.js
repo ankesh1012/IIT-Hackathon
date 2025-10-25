@@ -39,6 +39,7 @@ exports.register = async (req, res) => {
       name: user.name,
       email: user.email,
       location: user.location,
+      skills: user.skills, // Send the empty skills array
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -57,8 +58,12 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user
-    const user = await User.findOne({ email }).select('+password');
+    // --- THIS IS THE FIX ---
+    // Find user, populate skills, and select password
+    const user = await User.findOne({ email })
+      .populate('skills') // <-- 1. ADD THIS
+      .select('+password');
+    // -----------------------
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -77,6 +82,7 @@ exports.login = async (req, res) => {
       name: user.name,
       email: user.email,
       location: user.location,
+      skills: user.skills, // <-- 2. ADD THIS
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -88,8 +94,9 @@ exports.login = async (req, res) => {
 // @desc    Get current user
 exports.getCurrentUser = async (req, res) => {
   try {
+    // This function also needs to populate skills
     const user = await User.findById(req.user._id)
-      .populate('skills')
+      .populate('skills') // <-- MAKE SURE THIS IS HERE
       .select('-password');
 
     res.json(user);

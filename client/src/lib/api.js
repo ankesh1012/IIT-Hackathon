@@ -1,42 +1,53 @@
-import axios from "axios";
+// client/src/lib/api.js
 
-// Create the Axios instance
+import axios from 'axios';
+
+// 1. Create a new Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: 'http://localhost:5000/api', // Your backend URL
 });
 
+// 2. Add a request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Get the token from localStorage
     const token = localStorage.getItem('token');
+    
+    // If the token exists, add it to the Authorization header
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
+    
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Auth endpoints
+// 3. Update your existing API definitions to use the new `api` instance
+
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
-  getCurrentUser: () => api.get('/auth/me'),
 };
 
-// User endpoints
 export const userAPI = {
-  getUsers: (params) => api.get('/users', { params }),
+  getMe: () => api.get('/users/me'),
   getUser: (id) => api.get(`/users/${id}`),
-  updateUser: (id, data) => api.put(`/users/${id}`, data),
-  deleteUser: (id) => api.delete(`/users/${id}`),
+  
+  // --- ADD THIS FUNCTION ---
+  /**
+   * Updates the currently authenticated user's profile.
+   * @param {object} updatedData - An object with fields to update (e.g., { username, bio, skills })
+   */
+  updateMe: (updatedData) => api.put('/users/me', updatedData),
 };
 
-// Skill endpoints
-export const skillAPI = {
-  getSkills: (params) => api.get('/skills', { params }),
-  createSkill: (data) => api.post('/skills', data),
-  updateSkill: (id, data) => api.put(`/skills/${id}`, data),
-  deleteSkill: (id) => api.delete(`/skills/${id}`),
+export const projectAPI = {
+  getProjects: () => api.get('/projects'),
+  createProject: (projectData) => api.post('/projects', projectData),
+  joinProject: (id) => api.post(`/projects/${id}/join`),
 };
 
 export default api;

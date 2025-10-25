@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { User, MapPin, BookText, Sparkles, Lock, X, Plus } from 'lucide-react';
-// Import components from your UI library
+import React, { useState, useEffect } from 'react';
+import { User, MapPin, BookText, Sparkles, Lock, X, Plus, CheckCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
@@ -8,45 +7,46 @@ import { Textarea } from "@/components/ui/textarea.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card.jsx";
 
-// Store default profile text as constants
-const DEFAULT_USERNAME = 'jane_doe';
-const DEFAULT_BIO = 'Frontend developer passionate about React and creating beautiful, accessible web experiences.';
-const DEFAULT_LOCATION = 'San Francisco, CA';
+// 1. Import the authentication context hook
+import { useAuthContext } from '@/hooks/useAuthContext.jsx';
+// 2. Import your userAPI
+import { userAPI } from '@/lib/api.js'; // <-- IMPORT THE API
 
 // --- Main AccountPage Component ---
-/**
- * The Account Settings page component.
- * Note: We've renamed this from App to AccountPage.
- */
 export default function AccountPage() {
+  // 3. Get user, token, and the login function from context
+  const { user, token, login } = useAuthContext(); // <-- Get token and login
+
   // --- State ---
-  // User profile state initialized with default values
-  const [username, setUsername] = useState(DEFAULT_USERNAME);
-  const [bio, setBio] = useState(DEFAULT_BIO);
-  const [location, setLocation] = useState(DEFAULT_LOCATION);
-
-  // Skills state
-  const [skills, setSkills] = useState(['React', 'JavaScript', 'Tailwind CSS', 'Next.js', 'Node.js']);
+  const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
+  const [skills, setSkills] = useState([]); // <-- Initialize as empty
   const [newSkill, setNewSkill] = useState('');
-
-  // Password state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // UI state
   const [statusMessage, setStatusMessage] = useState({ message: '', type: '' });
+  const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
+
+  // 4. Populate form with user data
+  useEffect(() => {
+    if (user) {
+      setUsername(user.name || '');
+      setBio(user.bio || 'Tell us a little about yourself...');
+      setLocation(user.location || '');
+      // Load skills. Your backend populates skills as objects,
+      // but we just want the names for the frontend state.
+      setSkills(user.skills ? user.skills.map(skill => skill.name) : []);
+    }
+  }, [user]);
 
   // --- Handlers ---
-
-  /**
-   * Handles adding a new skill to the list.
-   */
   const handleAddSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
       setSkills([...skills, newSkill.trim()]);
       setNewSkill('');
-      setStatusMessage({ message: 'Skill added!', type: 'success' });
+      setStatusMessage({ message: 'Skill added (click Save to confirm)!', type: 'success' });
       setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
     } else if (skills.includes(newSkill.trim())) {
       setStatusMessage({ message: 'Skill already added.', type: 'error' });
@@ -54,76 +54,107 @@ export default function AccountPage() {
     }
   };
 
-  /**
-   * Handles removing a skill from the list by its index.
-   */
   const handleRemoveSkill = (indexToRemove) => {
     setSkills(skills.filter((_, index) => index !== indexToRemove));
-    setStatusMessage({ message: 'Skill removed.', type: 'success' });
+    setStatusMessage({ message: 'Skill removed (click Save to confirm).', type: 'success' });
     setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
   };
 
   /**
    * Handles the main form submission.
    */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // <-- Make this async
+    console.log("Submitting form..."); // <-- Your console log
     e.preventDefault();
-    setStatusMessage({ message: '', type: '' }); // Clear previous messages
+    setStatusMessage({ message: '', type: '' });
+    setIsLoading(true); // <-- Set loading
 
     // --- Password Validation ---
     if (newPassword || confirmPassword) {
       if (newPassword !== confirmPassword) {
         setStatusMessage({ message: 'New passwords do not match.', type: 'error' });
+        setIsLoading(false);
         return;
       }
-      if (newPassword.length < 8) {
+      if (newPassword.length < 8) { // Your model has minlength 6, but 8 is safer
         setStatusMessage({ message: 'New password must be at least 8 characters long.', type: 'error' });
+        setIsLoading(false);
         return;
       }
       if (!currentPassword) {
         setStatusMessage({ message: 'Please enter your current password to change it.', type: 'error' });
+        setIsLoading(false);
         return;
       }
     }
 
-    // --- API Call Simulation ---
-    // Check if profile fields are still the default, and if so, submit an empty string
-    const usernameToSubmit = username === DEFAULT_USERNAME ? '' : username;
-    const bioToSubmit = bio === DEFAULT_BIO ? '' : bio;
-    const locationToSubmit = location === DEFAULT_LOCATION ? '' : location;
+    // --- 5. REAL API Call ---
+    try {
+      // Build the payload
+      const updatedData = {
+        username: username, // Your backend controller maps this to 'name'
+        bio: bio,
+        location: location,
+        skills: skills, // Send the array of strings
+      };
 
-    console.log('Submitting data to API...');
-    console.log({
-      username: usernameToSubmit,
-      bio: bioToSubmit,
-      location: locationToSubmit,
-      skills,
-      // Note: Only send password data if it's actually being changed.
-      ...(newPassword && { currentPassword, newPassword })
-    });
+      // Add password fields only if they are filled
+      if (newPassword && currentPassword) {
+        updatedData.currentPassword = currentPassword;
+        updatedData.newPassword = newPassword;
+      }
 
-    // Simulate a successful API call
-    setStatusMessage({ message: 'Account settings saved successfully!', type: 'success' });
-    
-    // Clear password fields after successful submission
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    
-    // Hide success message after a few seconds
-    setTimeout(() => setStatusMessage({ message: '', type: '' }), 3000);
+      // Call the API
+      const response = await userAPI.updateMe(updatedData);
+      
+      // `response.data` is the *updated user object* from the backend
+
+      // --- 6. Update Global State ---
+      // This is the most important step!
+      // Use the 'login' function to update AuthContext and localStorage
+      login(response.data, token);
+
+      // Show success message
+      setStatusMessage({ message: 'Account settings saved successfully!', type: 'success' });
+      
+      // Clear password fields
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+    } catch (error) {
+      // Show error message from API
+      const message = error.response?.data?.message || 'Failed to update settings.';
+      setStatusMessage({ message, type: 'error' });
+    } finally {
+      setIsLoading(false); // <-- Stop loading
+      
+      // Hide status message after a few seconds
+      setTimeout(() => setStatusMessage({ message: '', type: '' }), 3000);
+    }
   };
 
   // --- Render ---
+  if (!user) {
+    return <div>Loading account details...</div>;
+  }
+
   return (
     <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto">
-      <Card as="form" onSubmit={handleSubmit}>
+      
+      {/* --- FIX PART 1 ---
+        Remove the onSubmit handler from the <Card> component.
+        The 'as="form"' prop is fine, but the onSubmit event isn't firing.
+      */}
+      <Card as="form">
+        
         <CardHeader>
           <CardTitle className="text-3xl font-bold">
             Account Settings
           </CardTitle>
         </CardHeader>
 
+        {/* --- CardContent is unchanged --- */}
         <CardContent className="space-y-8">
           
           {/* --- Section: Profile --- */}
@@ -140,18 +171,7 @@ export default function AccountPage() {
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  onFocus={() => {
-                    if (username === DEFAULT_USERNAME) {
-                      setUsername('');
-                    }
-                  }}
-                  onBlur={() => {
-                    if (username.trim() === '') {
-                      setUsername(DEFAULT_USERNAME);
-                    }
-                  }}
                   autoComplete="username"
-                  className={username === DEFAULT_USERNAME ? 'text-muted-foreground' : ''}
                 />
               </div>
               {/* Location */}
@@ -161,19 +181,8 @@ export default function AccountPage() {
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  onFocus={() => {
-                    if (location === DEFAULT_LOCATION) {
-                      setLocation('');
-                    }
-                  }}
-                  onBlur={() => {
-                    if (location.trim() === '') {
-                      setLocation(DEFAULT_LOCATION);
-                    }
-                  }}
                   placeholder="e.g., New York, NY"
                   autoComplete="address-level2"
-                  className={location === DEFAULT_LOCATION ? 'text-muted-foreground' : ''}
                 />
               </div>
             </div>
@@ -188,22 +197,7 @@ export default function AccountPage() {
                 rows="4"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                onFocus={() => {
-                  // If the bio is the default text, clear it on click
-                  if (bio === DEFAULT_BIO) {
-                    setBio('');
-                  }
-                }}
-                onBlur={() => {
-                  // If the user clicks away and the field is empty,
-                  // reset it to the default text.
-                  if (bio.trim() === '') {
-                    setBio(DEFAULT_BIO);
-                  }
-                }}
                 placeholder="Tell us a little about yourself..."
-                // Conditionally apply a 'placeholder' text color if it's the default value
-                className={bio === DEFAULT_BIO ? 'text-muted-foreground' : ''}
               />
             </div>
           </div>
@@ -221,14 +215,15 @@ export default function AccountPage() {
               {skills.length > 0 ? (
                 skills.map((skill, index) => (
                   <Badge variant="secondary" key={index} className="flex items-center gap-2">
-                    {skill}
+                    {/* Display the skill name. If skill is an object (from initial load), use skill.name. If it's a string (just added), use skill. */}
+                    {typeof skill === 'object' ? skill.name : skill}
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5 rounded-full"
                       onClick={() => handleRemoveSkill(index)}
-                      aria-label={`Remove ${skill}`}
+                      aria-label={`Remove ${typeof skill === 'object' ? skill.name : skill}`}
                     >
                       <X size={14} />
                     </Button>
@@ -294,7 +289,7 @@ export default function AccountPage() {
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.g.target.value)}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
                 />
               </div>
@@ -307,17 +302,26 @@ export default function AccountPage() {
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="w-full sm:w-auto">
             {statusMessage.message && (
-              <p className={`text-sm ${statusMessage.type === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
+              <p className={`text-sm ${statusMessage.type === 'error' ? 'text-destructive' : 'text-green-600'}`}>
                 {statusMessage.message}
               </p>
             )}
           </div>
-          <Button type="submit" className="w-full sm:w-auto">
-            Save All Changes
+
+          {/* --- FIX PART 2 ---
+            Change type="submit" to type="button"
+            Add the onClick={handleSubmit} handler directly to the button.
+          */}
+          <Button 
+            type="button" 
+            onClick={handleSubmit} 
+            className="w-full sm:w-auto" 
+            disabled={isLoading}
+          >
+            {isLoading ? 'Saving...' : 'Save All Changes'}
           </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
-
