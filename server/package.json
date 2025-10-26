@@ -22,8 +22,13 @@
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
+<<<<<<< HEAD
     "tailwind-plugin-ripple-effect": "^0.0.5",
     "use-ripple-hook": "^1.0.24"
+=======
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+>>>>>>> upstream/main
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
