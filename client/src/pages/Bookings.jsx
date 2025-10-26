@@ -386,13 +386,21 @@ const SessionsView = ({ sessions, onJoinSession, currentUserId }) => {
 
 // --- Reusable Session Card for Tabs and Browse ---
 const SessionCard = ({ session, type, onJoinSession, currentUserId }) => {
+    const { user } = useAuthContext();
+    // Check if session skill name is in user's learningSkills
+    const isLearningGoalMatch = user?.learningSkills?.some(ls => ls.name === session.skill.name) || false;
+
     const isInstructor = session.instructor._id === currentUserId;
     const isAttending = session.attendees.map(a => a._id).includes(currentUserId);
     const isPastSession = isPast(new Date(session.dateTime));
     const isFull = session.attendees.length >= session.maxAttendees;
 
-    // Determine the variant based on who created/joined
-    const cardVariant = isInstructor ? "border-primary-dark" : isAttending ? "border-green-600" : "border-border";
+    // Determine the variant based on involvement and learning goal match
+    let cardBorder = "border-border";
+    if (isInstructor) cardBorder = "border-primary-dark";
+    else if (isAttending) cardBorder = "border-green-600";
+    else if (type === 'browse' && isLearningGoalMatch) cardBorder = "border-accent-light border-2 shadow-md"; // Highlight learning goal
+
     
     // Determine the button text/action
     let buttonText = "View Details";
@@ -424,13 +432,14 @@ const SessionCard = ({ session, type, onJoinSession, currentUserId }) => {
     }
 
     return (
-        <Card className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 shadow-sm hover:shadow-md transition-shadow ${cardVariant}`}>
+        <Card className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 shadow-sm hover:shadow-md transition-shadow ${cardBorder}`}>
             <div className="flex-1 space-y-1">
                 <CardTitle className="text-lg font-semibold">{session.title}</CardTitle>
                 <div className="flex items-center text-sm text-muted-foreground gap-2">
                     <CalendarIcon size={14} />
                     <span>{format(new Date(session.dateTime), 'MMM d, h:mm a')}</span>
                     {(isInstructor || isAttending) && <Badge variant="secondary">{isInstructor ? 'Teaching' : 'Attending'}</Badge>}
+                    {type === 'browse' && isLearningGoalMatch && <Badge variant="default" className="bg-accent-light/80 text-white">Your Goal!</Badge>}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground gap-2">
                     <UserIcon size={14} />
