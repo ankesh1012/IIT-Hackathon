@@ -1,3 +1,5 @@
+// server/models/User.js
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -36,6 +38,12 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Skill',
   }],
+  // --- NEW FIELD: Skills the user wants to learn ---
+  learningSkills: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Skill',
+  }],
+  // --------------------------------------------------
   rating: {
     type: Number,
     default: 0,
@@ -55,7 +63,7 @@ const userSchema = new mongoose.Schema({
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

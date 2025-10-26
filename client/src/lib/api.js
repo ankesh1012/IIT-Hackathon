@@ -1,42 +1,70 @@
-import axios from "axios";
+// client/src/lib/api.js
 
-// Create the Axios instance
+import axios from 'axios';
+
+// 1. Create a new Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: 'http://localhost:5000/api', // Your backend URL
 });
 
+// 2. Add a request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Get the token from localStorage
     const token = localStorage.getItem('token');
+    
+    // If the token exists, add it to the Authorization header
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
+    
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Auth endpoints
+// 3. API definitions
+
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
-  getCurrentUser: () => api.get('/auth/me'),
 };
 
-// User endpoints
 export const userAPI = {
-  getUsers: (params) => api.get('/users', { params }),
+  getMe: () => api.get('/users/me'),
   getUser: (id) => api.get(`/users/${id}`),
-  updateUser: (id, data) => api.put(`/users/${id}`, data),
-  deleteUser: (id) => api.delete(`/users/${id}`),
+  updateMe: (updatedData) => api.put('/users/me', updatedData),
+  searchUsers: (params) => api.get('/users/search', { params }),
 };
 
-// Skill endpoints
+// --- MODIFIED PROJECT API ---
+export const projectAPI = {
+  getProjects: () => api.get('/projects'), // Get all open projects
+  // --- ADDED FUNCTION ---
+  getProjectsForUser: () => api.get('/projects/me'), 
+  // ----------------------
+  createProject: (projectData) => api.post('/projects', projectData),
+  joinProject: (id) => api.post(`/projects/${id}/join`),
+};
+
 export const skillAPI = {
-  getSkills: (params) => api.get('/skills', { params }),
-  createSkill: (data) => api.post('/skills', data),
-  updateSkill: (id, data) => api.put(`/skills/${id}`, data),
-  deleteSkill: (id) => api.delete(`/skills/${id}`),
+  getAllSkillTags: () => api.get('/skills/tags'),
+};
+
+export const sessionAPI = {
+  createSession: (sessionData) => api.post('/sessions', sessionData),
+  getSessionsForUser: () => api.get('/sessions/me'),
+  getAllPublicSessions: () => api.get('/sessions/public'),
+  joinSession: (id) => api.post(`/sessions/${id}/join`),
+};
+
+export const serviceAPI = {
+    getAllServices: () => api.get('/services'),
+    createService: (data) => api.post('/services', data),
+    purchaseService: (id) => api.post(`/services/${id}/purchase`),
+    getServiceById: (id) => api.get(`/services/${id}`),
 };
 
 export default api;

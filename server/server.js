@@ -1,7 +1,10 @@
+// server/server.js
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+
 
 dotenv.config();
 
@@ -20,6 +23,10 @@ connectDB();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/skills', require('./routes/skills'));
+app.use('/api/sessions', require('./routes/sessions')); 
+// --- ADD THIS NEW LINE ---
+app.use('/api/services', require('./routes/services')); 
+app.use('/api/projects', require('./routes/projects'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

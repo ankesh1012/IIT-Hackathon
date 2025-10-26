@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { Card, CardContent } from '../components/ui/card.jsx';
-import { Network, Calendar, Award, Lightbulb, Heart, Shield } from "lucide-react";
+import { Network, Calendar, Award, Lightbulb, Heart, Shield, DollarSign } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
@@ -11,7 +13,7 @@ const features = [
     title: "Local Connections",
     description: "Discover and connect with skilled neighbors within your customizable radius",
     image: "/assets/feature-connect.png",
-    color: "primary",
+    color: "secondary",
     path: "/discover"
   },
   {
@@ -23,12 +25,12 @@ const features = [
     path: "/bookings"
   },
   {
-    icon: Award,
-    title: "Reputation System",
-    description: "Build trust through ratings, testimonials, and skill endorsements",
-    image: "/assets/feature-reputation.png",
+    icon: DollarSign,
+    title: "Service Marketplace",
+    description: "Sell your skills as services and earn credits for your time and expertise",
+    image: "/assets/feature-service.png",
     color: "accent",
-    path: "/profile"
+    path: "/services"
   },
   {
     icon: Lightbulb,
@@ -51,14 +53,10 @@ const features = [
     title: "Verified Profiles",
     description: "Optional identity verification and skill validation for peace of mind",
     image: "/assets/feature-profile.png",
-    color: "primary",
+    color: "secondary",
     path: "/settings"
   }
 ];
-
-gsap.registerPlugin(ScrollTrigger);
-
-const tracedPath = "M664.688 198.753C728.487 330.699 750.592 561.368 689.442 680.253C569.086 914.246 -135.883 713.673 77.8551 393.315C206.866 199.949 475.748 144.305 664.688 198.753";
 
 const Features = () => {
   const navigate = useNavigate();
@@ -66,6 +64,7 @@ const Features = () => {
   useEffect(() => {
     const path = document.getElementById("scroll-animated-path");
     if (!path) return;
+
     const pathLength = path.getTotalLength();
     path.style.strokeDasharray = pathLength;
     path.style.strokeDashoffset = pathLength;
@@ -93,29 +92,25 @@ const Features = () => {
         id="scroll-path-svg"
         width="100%"
         height="510"
-        viewBox="0 0 1440 510"  // Increased height for vertical 30px shift
+        viewBox="0 0 1440 510"
         fill="none"
         className="absolute left-0 right-0 top-0 pointer-events-none z-0"
       >
         <path
           id="scroll-animated-path"
           d="
-      M 40 130
-      Q 300 250, 600 180
-      Q 900 110, 800 320
-      Q 700 400, 1100 360
-      Q 1400 330, 1280 430
-    "
-          stroke="hsl(var(--primary))"
+      M 40 100
+      Q 300 220, 600 150
+      Q 900 80, 800 260
+      Q 700 370, 1100 330
+      Q 1400 300, 1280 400
+    "
+          stroke="rgba(150, 111, 51, 0.3)"  // Light brown with 30% opacity
           strokeWidth="18"
           fill="none"
           strokeLinecap="round"
         />
       </svg>
-
-
-
-
 
 
 
@@ -129,6 +124,7 @@ const Features = () => {
             Powerful features designed to make skill sharing safe, easy, and rewarding
           </p>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => {
             const Icon = feature.icon;
@@ -154,9 +150,7 @@ const Features = () => {
                     <Icon className="w-6 h-6 text-black dark:text-primary-foreground" />
                   </div>
                   <h3 className="text-xl font-bold">{feature.title}</h3>
-                  <p className="text-muted-foreground">
-                    {feature.description}
-                  </p>
+                  <p className="text-muted-foreground">{feature.description}</p>
                 </CardContent>
               </Card>
             );
