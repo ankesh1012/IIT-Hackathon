@@ -92,26 +92,31 @@ const Features = () => {
       <svg
         id="scroll-path-svg"
         width="100%"
-        height="420"
-        viewBox="0 0 1440 420"
+        height="510"
+        viewBox="0 0 1440 510"  // Increased height for vertical 30px shift
         fill="none"
         className="absolute left-0 right-0 top-0 pointer-events-none z-0"
       >
         <path
           id="scroll-animated-path"
           d="
-      M 40 100
-      Q 300 220, 600 150
-      Q 900 80, 800 260
-      Q 700 370, 1100 330
-      Q 1400 300, 1280 400
-    "
+      M 40 130
+      Q 300 250, 600 180
+      Q 900 110, 800 320
+      Q 700 400, 1100 360
+      Q 1400 330, 1280 430
+    "
           stroke="hsl(var(--primary))"
           strokeWidth="18"
           fill="none"
           strokeLinecap="round"
         />
       </svg>
+
+
+
+
+
 
 
 

@@ -17,7 +17,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      {/* Add pt-16 to main so all pages get correct spacing below the fixed navbar */}
+      {/* Main content area with padding top to offset fixed navbar */}
       <main className="flex-grow pt-16">
         <Routes>
           {/* Existing Routes */}
@@ -26,7 +26,7 @@ function App() {
           <Route path="/discover" element={<Discover />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
 
-          {/* New Pages based on your features */}
+          {/* Other feature pages */}
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/credits" element={<Credits />} />
@@ -35,7 +35,7 @@ function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/account" element={<AccountPage />} />
 
-          {/* Not Found Page */}
+          {/* Fallback for unmatched routes */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
