@@ -1,5 +1,5 @@
 import { Card, CardContent } from '../components/ui/card.jsx';
-import { Network, Calendar, Award, Lightbulb, Heart, Shield } from "lucide-react";
+import { Network, Calendar, Award, Lightbulb, Heart, Shield, DollarSign } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
 const features = [
@@ -20,18 +20,19 @@ const features = [
     path: "/bookings"
   },
   {
-    icon: Award,
-    title: "Reputation System",
-    description: "Build trust through ratings, testimonials, and skill endorsements",
-    image: "/assets/feature-reputation.png",
+    // --- MODIFIED FEATURE CARD ---
+    icon: DollarSign,
+    title: "Service Marketplace",
+    description: "Sell your skills as services and earn credits for your time and expertise",
+    image: "/assets/feature-service.png",
     color: "accent",
-    path: "/profile"
+    path: "/services" // New path
   },
   {
     icon: Lightbulb,
     title: "Community Projects",
     description: "Propose or join collaborative projects that strengthen your neighborhood",
-    image: "/assets/feature-projects.png", // NO image, use only icon
+    image: "/assets/feature-projects.png", 
     color: "success",
     path: "/projects"
   },

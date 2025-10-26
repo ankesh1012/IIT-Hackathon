@@ -3,19 +3,32 @@
 const User = require('../models/User');
 const Skill = require('../models/Skill');
 
+// Function to attach coordinates (for map visualization)
+const GEOLOCATIONS = {
+    'bhubaneswar, odisha': { lat: 20.2961, lng: 85.8245 }, 'cuttack, odisha': { lat: 20.4625, lng: 85.8829 },
+    'puri, odisha': { lat: 19.8138, lng: 85.8315 }, 'rourkela, odisha': { lat: 22.2574, lng: 84.8698 },
+    'sambalpur, odisha': { lat: 21.4667, lng: 83.9833 }, 'mumbai, maharashtra': { lat: 19.0760, lng: 72.8777 },
+    'delhi, delhi': { lat: 28.7041, lng: 77.1025 }, 'bangalore, karnataka': { lat: 12.9716, lng: 77.5946 },
+    'hyderabad, telangana': { lat: 17.3850, lng: 78.4867 }, 'chennai, tamil nadu': { lat: 13.0827, lng: 80.2707 },
+    'kolkata, west bengal': { lat: 22.5726, lng: 88.3639 }, 'pune, maharashtra': { lat: 18.5204, lng: 73.8567 },
+    'ahmedabad, gujarat': { lat: 23.0225, lng: 72.5714 }, 'jaipur, rajasthan': { lat: 26.9124, lng: 75.7873 },
+    'lucknow, uttar pradesh': { lat: 26.8467, lng: 80.9462 },
+};
+const attachCoordinates = (user) => {
+    const locationKey = user.location ? user.location.toLowerCase() : '';
+    const coords = GEOLOCATIONS[locationKey] || { lat: 0, lng: 0 };
+    return { ...user.toObject(), coords: coords, };
+};
+
+
 // @desc    Get current logged in user's profile
 // @route   GET /api/users/me
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
-    // req.user only has the ID. Re-fetch from DB to populate skills.
-    const user = await User.findById(req.user._id).populate('skills');
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json(user);
+    const user = await User.findById(req.user._id).populate(['skills', 'learningSkills']);
+    if (!user) { return res.status(404).json({ message: 'User not found' }); }
+    res.status(200).json(attachCoordinates(user));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -27,53 +40,47 @@ exports.getMe = async (req, res) => {
 // @access  Private
 exports.updateMe = async (req, res) => {
   try {
-    // Get user from the 'protect' middleware
-    // We must select '+password' to get the field for comparison
     const user = await User.findById(req.user._id).select('+password');
 
     if (user) {
-      // Get data from the request body
-      const { username, bio, location, skills, currentPassword, newPassword } = req.body;
-
-      // Update basic profile fields
+      const { username, bio, location, skills, learningSkills, currentPassword, newPassword } = req.body;
       user.name = username || user.name;
       user.bio = bio !== undefined ? bio : user.bio;
       user.location = location !== undefined ? location : user.location;
 
-      // Handle password change
       if (currentPassword && newPassword) {
         const isMatch = await user.comparePassword(currentPassword);
-
-        if (!isMatch) {
-          return res.status(401).json({ message: 'Invalid current password' });
-        }
-        user.password = newPassword; // 'pre-save' hook will hash this
+        if (!isMatch) { return res.status(401).json({ message: 'Invalid current password' }); }
+        user.password = newPassword;
       }
 
-      // Handle skills (String array -> ObjectId array)
+      // Handle offered skills
       if (skills && Array.isArray(skills)) {
         const skillIds = await Promise.all(
           skills.map(async (skillName) => {
-            let skill = await Skill.findOne({
-              name: { $regex: new RegExp(`^${skillName}$`, 'i') },
-            });
-            if (!skill) {
-              skill = new Skill({ name: skillName });
-              await skill.save();
-            }
+            let skill = await Skill.findOne({ name: { $regex: new RegExp(`^${skillName}$`, 'i') } });
+            if (!skill) { skill = new Skill({ name: skillName }); await skill.save(); }
             return skill._id;
           })
         );
         user.skills = skillIds;
       }
 
-      // Save the updated user
+      // Handle learningSkills
+      if (learningSkills && Array.isArray(learningSkills)) {
+        const learningSkillIds = await Promise.all(
+          learningSkills.map(async (skillName) => {
+            let skill = await Skill.findOne({ name: { $regex: new RegExp(`^${skillName}$`, 'i') } });
+            if (!skill) { skill = new Skill({ name: skillName }); await skill.save(); }
+            return skill._id;
+          })
+        );
+        user.learningSkills = learningSkillIds;
+      }
+
       const updatedUser = await user.save();
-
-      // Re-fetch to populate skills, as .save() doesn't populate
-      const populatedUser = await User.findById(updatedUser._id).populate('skills');
-
-      res.status(200).json(populatedUser);
+      const populatedUser = await User.findById(updatedUser._id).populate(['skills', 'learningSkills']);
+      res.status(200).json(attachCoordinates(populatedUser));
 
     } else {
       return res.status(404).json({ message: 'User not found' });
@@ -84,57 +91,47 @@ exports.updateMe = async (req, res) => {
   }
 };
 
-// @desc    Get all users
+// @desc    Get all users (Used by GET /api/users)
 exports.getUsers = async (req, res) => {
   try {
     const { search, location, radius } = req.query;
-
     let query = {};
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { bio: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    if (location) {
-      query.location = { $regex: location, $options: 'i' };
-    }
+    if (search) { query.$or = [ { name: { $regex: search, $options: 'i' } }, { bio: { $regex: search, $options: 'i' } }, ]; }
+    if (location) { query.location = { $regex: location, $options: 'i' }; }
 
     const users = await User.find(query)
       .populate('skills')
       .select('-password')
       .sort('-rating');
-
-    res.json(users);
+      
+    const usersWithCoords = users.map(attachCoordinates);
+    res.json(usersWithCoords);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// @desc    Get user by ID
+// @desc    Get user by ID (Used by GET /api/users/:id)
 exports.getUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .populate('skills')
+      .populate(['skills', 'learningSkills'])
       .select('-password');
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json(user);
+    if (!user) { return res.status(404).json({ message: 'User not found' }); }
+    res.json(attachCoordinates(user));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// @desc    Update user
+// @desc    Update user (Used by PUT /api/users/:id)
+// *** THIS IS THE FUNCTION YOUR ROUTER CRASHED ON ***
 exports.updateUser = async (req, res) => {
   try {
+    // Check if user is updating their own profile
     if (req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ message: 'Not authorized' });
     }
@@ -157,8 +154,9 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+// **********************************************
 
-// @desc    Delete user
+// @desc    Delete user (Used by DELETE /api/users/:id)
 exports.deleteUser = async (req, res) => {
   try {
     if (req.user._id.toString() !== req.params.id) {
@@ -179,86 +177,54 @@ exports.deleteUser = async (req, res) => {
 };
 
 
-// @desc    Search for users by name, location, skills, OR find users with matching skills
+// @desc    Search for users
 // @route   GET /api/users/search
 // @access  Public
 exports.searchUsers = async (req, res) => {
   try {
-    const { name, location, skill, userId } = req.query; // Added userId
-
-    // Build the query object
+    const { name, location, skill, userId } = req.query; 
     let query = {};
-    let performSkillMatch = false; // Flag for default skill matching
-
-    // --- Check for standard search criteria ---
     if (name || location || skill) {
-      // 1. Add name/bio search
-      if (name) {
-        query.$or = [
-          { name: { $regex: name, $options: 'i' } },
-          { bio: { $regex: name, $options: 'i' } }
-        ];
-      }
-
-      // 2. Add location search
+      if (name) { query.$or = [ { name: { $regex: name, $options: 'i' } }, { bio: { $regex: name, $options: 'i' } } ]; }
       if (location) {
-        if (query.$or) {
-          query = {
-            $and: [ { $or: query.$or }, { location: { $regex: location, $options: 'i' } } ]
-          };
-        } else {
-          query.location = { $regex: location, $options: 'i' };
-        }
+        if (query.$or) { query = { $and: [ { $or: query.$or }, { location: { $regex: location, $options: 'i' } } ] }; } 
+        else { query.location = { $regex: location, $options: 'i' }; }
       }
-
-      // 3. Add specific skill search
       if (skill) {
         const skillDoc = await Skill.findOne({ name: { $regex: `^${skill}$`, $options: 'i' } });
         if (skillDoc) {
-          // If other queries exist, use $and, otherwise just set skills
            if (query.$and || query.$or || query.location) {
-             // Need to combine skill query with existing query structure
-             if (query.$and) {
-               query.$and.push({ skills: skillDoc._id });
-             } else if (query.$or){
-                 query = {$and: [ {$or: query.$or}, {skills: skillDoc._id} ]};
-             } else { // Only location was present before
-                 query = {$and: [ {location: query.location}, {skills: skillDoc._id} ]};
-             }
-           } else {
-               query.skills = skillDoc._id; // First/only query term
-           }
-        } else {
-          return res.json([]); // Skill doesn't exist, no matches
+             if (query.$and) { query.$and.push({ skills: skillDoc._id }); } 
+             else if (query.$or){ query = {$and: [ {$or: query.$or}, {skills: skillDoc._id} ]}; } 
+             else { query = {$and: [ {location: query.location}, {skills: skillDoc._id} ]}; }
+           } else { query.skills = skillDoc._id; }
+        } else { return res.json([]); }
+      }
+    }
+    else if (userId) { 
+      const currentUser = await User.findById(userId).select('learningSkills skills');
+      if (currentUser) {
+        let matchingSkillIds = [];
+        if (currentUser.learningSkills && currentUser.learningSkills.length > 0) {
+            matchingSkillIds = currentUser.learningSkills;
+            query.skills = { $in: matchingSkillIds };
+        } else if (currentUser.skills && currentUser.skills.length > 0) {
+            matchingSkillIds = currentUser.skills;
+            query.learningSkills = { $in: matchingSkillIds };
         }
+        if (matchingSkillIds.length > 0) { query._id = { $ne: userId }; }
       }
-    }
-    // --- Default Skill Matching Logic ---
-    else if (userId) {
-      // Only run if NO name, location, or skill query is provided
-      const currentUser = await User.findById(userId).select('skills');
-      if (currentUser && currentUser.skills && currentUser.skills.length > 0) {
-        query.skills = { $in: currentUser.skills }; // Find users with any matching skill ID
-        query._id = { $ne: userId }; // Exclude the logged-in user themselves
-        performSkillMatch = true; // Indicate we performed the default match
-      } else {
-         // If logged-in user has no skills, or user not found, show all users (or [])
-         // Keep query = {} to fetch all, or return res.json([]) if you prefer empty
-      }
-    }
-    // --- Fallback: No search, not logged in, or logged-in user has no skills ---
-    // If query is still {}, it means fetch all users. Add exclusion if userId was provided.
-    if (Object.keys(query).length === 0 && userId) {
-        query._id = { $ne: userId };
-    }
+    } 
+    if (Object.keys(query).length === 0 && userId) { query._id = { $ne: userId }; }
 
-    // Execute the query
     const users = await User.find(query)
-      .populate('skills', 'name')
-      .select('name bio location skills avatar rating reviewCount')
-      .limit(50);
-
-    res.json(users);
+      .populate('skills', 'name') 
+      .populate('learningSkills', 'name')
+      .select('name bio location skills learningSkills avatar rating reviewCount') 
+      .limit(50); 
+      
+    const usersWithCoords = users.map(attachCoordinates);
+    res.json(usersWithCoords);
 
   } catch (error) {
     console.error('Error in searchUsers:', error);

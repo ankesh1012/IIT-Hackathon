@@ -1,24 +1,76 @@
-import React from 'react';
+// client/src/pages/Credits.jsx
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card.jsx';
 import { Button } from '../components/ui/button.jsx';
-import { Coins, PlusCircle, ArrowDownCircle } from 'lucide-react';
+import { Coins, PlusCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
+import { useAuthContext } from '@/hooks/useAuthContext';
+import { userAPI } from '@/lib/api'; // Import userAPI
 
-// Mock Data for transactions
+// Mock Data for transactions (You will replace this with a transaction API later)
 const transactions = [
   { id: 1, type: 'earn', description: "Completed 'Garden Help' for Jane D.", amount: 50, date: '2025-11-12' },
   { id: 2, type: 'redeem', description: "Redeemed for 'Plumbing' from John S.", amount: -100, date: '2025-11-10' },
   { id: 3, type: 'earn', description: "Participated in 'Community Cleanup'", amount: 10, date: '2025-11-05' },
 ];
 
-const currentBalance = 530; // TODO: Fetch from API
-
 /**
  * Credits Page (Incentive Credits)
  * The user's "wallet" to manage and view their credits.
  */
 export default function Credits() {
+  const { user } = useAuthContext();
+  const [balance, setBalance] = useState(0); // Fetched balance
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch balance and transactions from API
+  useEffect(() => {
+    const fetchBalance = async () => {
+        if (!user) {
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        try {
+            // NOTE: Assuming the user object includes 'balance' or we fetch it from another endpoint
+            // For now, we use the user object in context as a placeholder.
+            // A dedicated API call for balance and transactions would be ideal here.
+            
+            // Placeholder: Use the balance from the context user object
+            setBalance(user.balance || 0); 
+            
+        } catch (error) {
+            console.error("Error fetching credit data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    // If you add a 'balance' field to User model, ensure authController populates it.
+    if (user && user.balance !== undefined) {
+        setBalance(user.balance);
+        setIsLoading(false);
+    } else {
+        // Fallback for initial load
+        fetchBalance();
+    }
+  }, [user]);
+
+  if (isLoading) {
+    return (
+        <div className="container mx-auto p-8 flex justify-center items-center h-[50vh]">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        </div>
+    );
+  }
   
-  // TODO: Fetch balance and transactions from API
+  if (!user) {
+      return (
+          <div className="container mx-auto p-8 text-center">
+            <h1 className="text-3xl font-bold mb-4">Community Credits</h1>
+            <p className="text-xl text-destructive">Please log in to manage your credits.</p>
+          </div>
+      );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -35,7 +87,7 @@ export default function Credits() {
             <Coins className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-bold">{currentBalance}</div>
+            <div className="text-5xl font-bold">{balance}</div>
             <p className="text-xs text-gray-500">credits available</p>
             <div className="flex gap-2 mt-6">
               <Button className="flex-1">
@@ -51,7 +103,7 @@ export default function Credits() {
         {/* Transaction History Card */}
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
+            <CardTitle>Transaction History (Mock)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -73,4 +125,3 @@ export default function Credits() {
     </div>
   );
 }
-

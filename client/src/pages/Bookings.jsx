@@ -200,7 +200,7 @@ const SessionsView = ({ sessions, onJoinSession, currentUserId }) => {
       const now = new Date();
       return sessions.filter(session => {
           const isUserInstructor = session.instructor._id === currentUserId;
-          const isUserAttendee = session.attendees.map(a => a._id).includes(currentUserId);
+          const isUserAttendee = session.attendees.some(a => a._id === currentUserId);
           const isPastSession = isPast(new Date(session.dateTime));
           
           if (status === 'upcoming') {
@@ -335,9 +335,6 @@ const SessionsView = ({ sessions, onJoinSession, currentUserId }) => {
                 )) : (<p className="text-sm text-muted-foreground">No attendees yet.</p>)}
               </div>
               
-              {/* Join Button Logic (hidden here, but displayed in Browse tab) */}
-              {/* This view only shows sessions you are already involved in */}
-              
             </CardContent>
           </Card>
         )}
@@ -471,12 +468,15 @@ export default function Bookings() {
       const skillsResponse = await skillAPI.getAllSkillTags();
       setAllSkillTags(skillsResponse.data);
 
+      let fetchedUserSessions = [];
       if (user) {
+        // Fetch sessions where user is instructor or attendee
         const sessionsResponse = await sessionAPI.getSessionsForUser();
-        setUserSessions(sessionsResponse.data);
+        fetchedUserSessions = sessionsResponse.data;
+        setUserSessions(fetchedUserSessions);
       }
       
-      // Fetch public sessions whether logged in or not
+      // Fetch public sessions (all future sessions)
       const publicResponse = await sessionAPI.getAllPublicSessions();
       setPublicSessions(publicResponse.data);
 
@@ -537,6 +537,7 @@ export default function Bookings() {
         {/* Tab 1: My Calendar and Sessions */}
         <TabsContent value="schedule">
             {user ? (
+                // FIX: Pass userSessions to SessionsView
                 <SessionsView sessions={userSessions} onJoinSession={handleJoinSession} currentUserId={user._id} />
             ) : (
                 <Card className="mt-4 p-8 text-center shadow-soft">

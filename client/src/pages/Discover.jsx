@@ -1,6 +1,6 @@
 // client/src/pages/Discover.jsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from '../components/ui/input.jsx';
 import { Button } from '../components/ui/button.jsx';
@@ -8,20 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../compone
 import { Badge } from '../components/ui/badge.jsx';
 import { Label } from '../components/ui/label.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.jsx';
-import { Search, MapPin, Star, Sparkles, X as XIcon, Loader2 } from 'lucide-react';
+import { Search, MapPin, Star, Sparkles, X as XIcon, Loader2, Heart } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { skillAPI, userAPI } from '@/lib/api';
-import { useAuthContext } from '@/hooks/useAuthContext'; // <-- Import useAuthContext
+import { useAuthContext } from '@/hooks/useAuthContext';
+
+// --- Lazy Load the Map Component ---
+const LazyUserMap = lazy(() => import('../components/UserMap'));
 
 // --- Main Discover Page Component ---
 export default function Discover() {
-  const { user } = useAuthContext(); // <-- Get the logged-in user
+  const { user } = useAuthContext();
 
   // State for search filters
   const [nameQuery, setNameQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
   const [skillQuery, setSkillQuery] = useState('');
-  const [radius, setRadius] = useState('5'); // Radius state (currently not used by backend)
+  const [radius, setRadius] = useState('5'); 
 
   // State for skill autocomplete
   const [allSkills, setAllSkills] = useState([]);
@@ -30,12 +33,12 @@ export default function Discover() {
 
   // State for results
   const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true); // Set to true initially
+  const [isLoading, setIsLoading] = useState(true); 
   const [error, setError] = useState(null);
-
+  
   const skillInputRef = useRef(null);
 
-  // --- NEW: Reusable function to fetch users ---
+  // Reusable function to fetch users
   const fetchUsers = async (params) => {
     setIsLoading(true);
     setError(null);
@@ -62,17 +65,16 @@ export default function Discover() {
     };
     fetchAllSkills();
   }, []);
-
-  // --- MODIFIED: Fetch initial users ---
-  // If logged in, fetch based on user's skills; otherwise, fetch all.
+  
+  // --- Fetch initial users based on Learning Goals ---
   useEffect(() => {
     const initialParams = {};
     if (user) {
-      // Send userId to trigger skill matching on backend if no other terms are present
+      // Send userId. Backend logic will now prioritize matching their learningSkills.
       initialParams.userId = user._id;
     }
     fetchUsers(initialParams);
-  }, [user]); // Re-run if the user logs in or out while on the page
+  }, [user]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -108,18 +110,28 @@ export default function Discover() {
     setSuggestions([]);
     setIsSkillInputFocused(false);
   };
-
-  // --- MODIFIED: Handle the main search ---
+  
+  // Handle the main search
   const handleSearch = async (e) => {
     e.preventDefault();
     const params = {};
     if (nameQuery) params.name = nameQuery;
     if (locationQuery) params.location = locationQuery;
     if (skillQuery) params.skill = skillQuery;
-    // NOTE: When actually searching, we DON'T send userId,
-    // so the backend performs a standard search, not the default skill match.
-    fetchUsers(params); // Call the reusable fetch function
+    
+    fetchUsers(params);
   };
+  
+  // --- Extract center coordinates for the map ---
+  // If user is logged in, use their coordinates from the user context.
+  // Otherwise, use the location of the first user in the search results.
+  const mapCenterCoords = user?.coords?.lat ? {
+      lat: user.coords.lat,
+      lng: user.coords.lng
+  } : (users.length > 0 && users[0].coords.lat !== 0 ? {
+      lat: users[0].coords.lat,
+      lng: users[0].coords.lng
+  } : { lat: 20.5937, lng: 78.9629 }); // Default to India center if no known location
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -127,11 +139,20 @@ export default function Discover() {
         <h1 className="text-4xl font-bold mb-2">Local Connections</h1>
         <p className="text-lg text-muted-foreground">Discover and connect with skilled neighbors in your area.</p>
       </header>
+      
+      {/* --- MAP SECTION --- */}
+      <div className='mb-10'>
+          <h2 className='text-2xl font-semibold mb-4'>Nearby Users Visualization</h2>
+          {/* Use Suspense for the lazy-loaded map */}
+          <Suspense fallback={<div className="h-[400px] flex items-center justify-center bg-muted/50 rounded-lg"><Loader2 className="h-8 w-8 text-primary animate-spin" /></div>}>
+              <LazyUserMap users={users} userLocation={mapCenterCoords} />
+          </Suspense>
+      </div>
 
       {/* Search and Filter Bar */}
       <form onSubmit={handleSearch} className="p-6 bg-card rounded-lg shadow-soft border mb-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-
+          
           {/* Name Search */}
           <div>
             <Label htmlFor="name" className="text-sm font-medium">Name or Bio</Label>
@@ -147,7 +168,7 @@ export default function Discover() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             </div>
           </div>
-
+          
           {/* Location Search */}
           <div>
             <Label htmlFor="location" className="text-sm font-medium">Location</Label>
@@ -163,7 +184,7 @@ export default function Discover() {
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             </div>
           </div>
-
+          
           {/* Skill Search (with autocomplete) */}
           <div className="relative" ref={skillInputRef}>
             <Label htmlFor="skill" className="text-sm font-medium">Skill</Label>
@@ -187,7 +208,7 @@ export default function Discover() {
                   <div
                     key={s}
                     className="p-3 hover:bg-muted cursor-pointer text-sm capitalize"
-                    onMouseDown={() => handleSuggestionClick(s)} // Use onMouseDown
+                    onMouseDown={() => handleSuggestionClick(s)}
                   >
                     {s}
                   </div>
@@ -216,23 +237,25 @@ export default function Discover() {
             <p className="text-muted-foreground mt-2">Finding connections...</p>
           </div>
         )}
-
+        
         {!isLoading && error && (
           <div className="text-center py-10 text-destructive">
             <XIcon className="h-8 w-8 mx-auto" />
             <p className="mt-2">{error}</p>
           </div>
         )}
-
-        {!isLoading && !error && users.length === 0 && (
+        
+        {!isLoading && users.length === 0 && (
           <div className="text-center py-10">
-            <h3 className="text-xl font-semibold">No users found</h3>
+            <h3 className="text-xl font-semibold">
+                {user ? "No matching skills found" : "No users found"}
+            </h3>
             <p className="text-muted-foreground mt-2">
-              Try adjusting your search filters or broadening your search.
+                {user ? "Try searching, or add more skills you want to learn to your account." : "Try adjusting your search filters or broadening your search."}
             </p>
           </div>
         )}
-
+        
         {!isLoading && !error && users.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map((user) => (

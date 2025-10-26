@@ -15,6 +15,7 @@ import Credits from './pages/Credits';
 import Settings from './pages/Settings';
 import AccountPage from './pages/AccountPage';
 import { AuthContextProvider } from '@/context/AuthContext';
+import ServiceMarketplace from './pages/ServiceMarketplace';
 
 // --- 1. IMPORT THE NEW PAGES ---
 import UserProfilePage from './pages/UserProfilePage';
@@ -47,6 +48,10 @@ function App() {
             <Route 
               path="/users/:id" 
               element={<UserProfilePage />} 
+            />
+            <Route 
+              path="/services" 
+              element={<ServiceMarketplace />} 
             />
 
             {/* Not Found Page */}

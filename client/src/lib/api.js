@@ -12,12 +12,12 @@ api.interceptors.request.use(
   (config) => {
     // Get the token from localStorage
     const token = localStorage.getItem('token');
-
+    
     // If the token exists, add it to the Authorization header
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-
+    
     return config;
   },
   (error) => {
@@ -39,8 +39,12 @@ export const userAPI = {
   searchUsers: (params) => api.get('/users/search', { params }),
 };
 
+// --- MODIFIED PROJECT API ---
 export const projectAPI = {
-  getProjects: () => api.get('/projects'),
+  getProjects: () => api.get('/projects'), // Get all open projects
+  // --- ADDED FUNCTION ---
+  getProjectsForUser: () => api.get('/projects/me'), 
+  // ----------------------
   createProject: (projectData) => api.post('/projects', projectData),
   joinProject: (id) => api.post(`/projects/${id}/join`),
 };
@@ -49,14 +53,18 @@ export const skillAPI = {
   getAllSkillTags: () => api.get('/skills/tags'),
 };
 
-// --- MODIFIED SESSION API ---
 export const sessionAPI = {
   createSession: (sessionData) => api.post('/sessions', sessionData),
   getSessionsForUser: () => api.get('/sessions/me'),
-  // --- ADDED PUBLIC SESSIONS FUNCTION ---
   getAllPublicSessions: () => api.get('/sessions/public'),
-  // ------------------------------------
   joinSession: (id) => api.post(`/sessions/${id}/join`),
+};
+
+export const serviceAPI = {
+    getAllServices: () => api.get('/services'),
+    createService: (data) => api.post('/services', data),
+    purchaseService: (id) => api.post(`/services/${id}/purchase`),
+    getServiceById: (id) => api.get(`/services/${id}`),
 };
 
 export default api;

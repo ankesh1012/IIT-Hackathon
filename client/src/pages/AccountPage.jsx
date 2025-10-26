@@ -1,7 +1,7 @@
 // client/src/pages/AccountPage.jsx
 
-import React, { useState, useEffect, useRef } from 'react'; // Import useRef
-import { User, MapPin, BookText, Sparkles, Lock, X, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, MapPin, BookText, Sparkles, Lock, X, Plus, Heart } from 'lucide-react'; // Added Heart icon
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
@@ -9,33 +9,36 @@ import { Textarea } from "@/components/ui/textarea.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card.jsx";
 import { useAuthContext } from '@/hooks/useAuthContext.jsx';
-// Import both userAPI and new skillAPI
 import { userAPI, skillAPI } from '@/lib/api.js';
 
 // --- Main AccountPage Component ---
 export default function AccountPage() {
-  // 3. Get user, token, and the login function from context
   const { user, token, login } = useAuthContext();
 
   // --- State ---
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
-  const [skills, setSkills] = useState([]); // User's current skills
-  const [newSkill, setNewSkill] = useState(''); // Text in the input box
   
-  // --- NEW STATE FOR AUTOCOMPLETE ---
-  const [allSkills, setAllSkills] = useState([]); // All skills from DB
-  const [suggestions, setSuggestions] = useState([]); // Filtered suggestions
-  const [isSkillInputFocused, setIsSkillInputFocused] = useState(false);
+  // Offered Skills
+  const [skills, setSkills] = useState([]); 
+  const [newSkill, setNewSkill] = useState(''); 
   
+  // --- NEW STATE: Learning Goals ---
+  const [learningSkills, setLearningSkills] = useState([]);
+  const [newLearningSkill, setNewLearningSkill] = useState('');
+  
+  const [allSkills, setAllSkills] = useState([]); 
+  const [suggestions, setSuggestions] = useState([]); 
+  const [isSkillInputFocused, setIsSkillInputFocused] = useState(false); 
+  const [activeInput, setActiveInput] = useState(null); // 'offered' or 'learning'
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState({ message: '', type: '' });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Ref to detect clicks outside the skills input area
   const skillsInputRef = useRef(null);
 
   // 4. Populate form with user data
@@ -44,23 +47,24 @@ export default function AccountPage() {
       setUsername(user.name || '');
       setBio(user.bio || 'Tell us a little about yourself...');
       setLocation(user.location || '');
+      // --- MODIFIED: Handle both skill lists ---
       setSkills(user.skills ? user.skills.map(skill => skill.name) : []);
+      setLearningSkills(user.learningSkills ? user.learningSkills.map(skill => skill.name) : []);
     }
   }, [user]);
 
-  // --- NEW EFFECT: Fetch all skills on mount ---
+  // --- NEW EFFECT: Fetch all skills on mount (Unchanged) ---
   useEffect(() => {
     const fetchAllSkills = async () => {
       try {
         const response = await skillAPI.getAllSkillTags();
-        // Store just the names for easier filtering
         setAllSkills(response.data.map(skill => skill.name));
       } catch (error) {
         console.error("Failed to fetch skills list:", error);
       }
     };
     fetchAllSkills();
-  }, []); // Runs once on component mount
+  }, []);
 
   // --- NEW: Close suggestions when clicking outside ---
   useEffect(() => {
@@ -68,6 +72,7 @@ export default function AccountPage() {
       if (skillsInputRef.current && !skillsInputRef.current.contains(event.target)) {
         setIsSkillInputFocused(false);
         setSuggestions([]);
+        setActiveInput(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -76,56 +81,74 @@ export default function AccountPage() {
     };
   }, []);
 
-  // --- MODIFIED: handleAddSkill now takes a name ---
-  const handleAddSkill = (skillName) => {
-    const trimmedName = skillName.trim().toLowerCase(); // Standardize to lowercase
-    if (trimmedName && !skills.includes(trimmedName)) {
-      setSkills([...skills, trimmedName]);
-      setNewSkill('');
-      setSuggestions([]); // Clear suggestions
-      setIsSkillInputFocused(false); // Hide box
-      setStatusMessage({ message: 'Skill added (click Save)!', type: 'success' });
-      setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
-    } else if (skills.includes(trimmedName)) {
-      setStatusMessage({ message: 'Skill already added.', type: 'error' });
-      setNewSkill('');
+  // --- Reusable Handler for Adding Skills ---
+  const handleAddSkill = (skillName, listType) => {
+    const trimmedName = skillName.trim().toLowerCase();
+    const currentList = listType === 'offered' ? skills : learningSkills;
+    const setList = listType === 'offered' ? setSkills : setLearningSkills;
+    
+    if (trimmedName && !currentList.includes(trimmedName)) {
+      setList([...currentList, trimmedName]);
+      if (listType === 'offered') setNewSkill('');
+      else setNewLearningSkill('');
+
       setSuggestions([]);
       setIsSkillInputFocused(false);
+      setActiveInput(null);
+      setStatusMessage({ message: 'Goal added (click Save)!', type: 'success' });
+      setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
+    } else if (currentList.includes(trimmedName)) {
+      setStatusMessage({ message: 'Skill already added.', type: 'error' });
       setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
     }
   };
 
-  const handleRemoveSkill = (indexToRemove) => {
-    setSkills(skills.filter((_, index) => index !== indexToRemove));
+  // --- Reusable Handler for Removing Skills ---
+  const handleRemoveSkill = (indexToRemove, listType) => {
+    const currentList = listType === 'offered' ? skills : learningSkills;
+    const setList = listType === 'offered' ? setSkills : setLearningSkills;
+
+    setList(currentList.filter((_, index) => index !== indexToRemove));
     setStatusMessage({ message: 'Skill removed (click Save).', type: 'success' });
     setTimeout(() => setStatusMessage({ message: '', type: '' }), 2000);
   };
-
-  // --- NEW: Handle typing in the skill input ---
-  const handleSkillInputChange = (e) => {
+  
+  // --- Universal Input Change and Autocomplete Handler ---
+  const handleUniversalInputChange = (e, listType) => {
     const value = e.target.value;
-    setNewSkill(value);
+    const currentList = listType === 'offered' ? skills : learningSkills;
+
+    if (listType === 'offered') setNewSkill(value);
+    else setNewLearningSkill(value);
+    
     setIsSkillInputFocused(true);
+    setActiveInput(listType);
 
     if (value.length > 0) {
       const filteredSuggestions = allSkills
         .filter(skill => 
-          skill.toLowerCase().startsWith(value.toLowerCase()) && // Check startsWith
-          !skills.includes(skill) // Don't suggest skills already added
+          skill.toLowerCase().startsWith(value.toLowerCase()) &&
+          !currentList.includes(skill)
         )
-        .slice(0, 10); // Show max 10 suggestions
+        .slice(0, 10);
       setSuggestions(filteredSuggestions);
     } else {
       setSuggestions([]);
     }
   };
 
-  // --- NEW: Handle clicking a suggestion ---
-  const handleSuggestionClick = (skillName) => {
-    handleAddSkill(skillName); // Add skill directly on click
+  // --- Universal Suggestion Click Handler ---
+  const handleSuggestionClick = (suggestion) => {
+    // Determine which list to add the skill to based on the active input
+    if (activeInput === 'offered') {
+      handleAddSkill(suggestion, 'offered');
+    } else if (activeInput === 'learning') {
+      handleAddSkill(suggestion, 'learning');
+    }
   };
 
-  // --- handleSubmit is unchanged, it's already correct ---
+
+  // --- handleSubmit is MODIFIED to send learningSkills ---
   const handleSubmit = async (e) => {
     console.log("Submitting form...");
     e.preventDefault();
@@ -151,13 +174,13 @@ export default function AccountPage() {
       }
     }
 
-    // --- API Call is unchanged ---
     try {
       const updatedData = {
         username: username,
         bio: bio,
         location: location,
-        skills: skills, // Send the array of strings
+        skills: skills, // Send offered skills
+        learningSkills: learningSkills, // --- NEW: Send learning goals ---
       };
 
       if (newPassword && currentPassword) {
@@ -207,6 +230,7 @@ export default function AccountPage() {
               <User size={24} className="mr-3" />
               Profile
             </h2>
+            {/* ... (Profile inputs) ... */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
@@ -244,86 +268,151 @@ export default function AccountPage() {
           </div>
 
           <hr />
+          
+          {/* --- Skills Container: Wrap both skill sections in one Ref container --- */}
+          <div ref={skillsInputRef}>
 
-          {/* --- Section: Skills (MODIFIED) --- */}
-          <div className="space-y-6" ref={skillsInputRef}> {/* Add ref here */}
-            <h2 className="text-2xl font-semibold flex items-center">
-              <Sparkles size={24} className="mr-3" />
-              Skills
-            </h2>
-            
-            {/* List of current skills (Unchanged, but render logic simplified) */}
-            <div className="flex flex-wrap gap-3">
-              {skills.length > 0 ? (
-                skills.map((skill, index) => (
-                  <Badge variant="secondary" key={index} className="flex items-center gap-2 capitalize">
-                    {/* The state `skills` is just strings, so render `skill` */}
-                    {skill}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 rounded-full"
-                      onClick={() => handleRemoveSkill(index)}
-                      aria-label={`Remove ${skill}`}
-                    >
-                      <X size={14} />
-                    </Button>
-                  </Badge>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No skills added yet.</p>
-              )}
-            </div>
-            
-            {/* Add new skill input (MODIFIED for autocomplete) */}
-            <div className="relative"> {/* NEW: Relative container for suggestions */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input
-                  type="text"
-                  value={newSkill}
-                  onChange={handleSkillInputChange} // Use new handler
-                  onFocus={() => setIsSkillInputFocused(true)} // Show on focus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddSkill(newSkill);
-D                    }
-                  }}
-                  placeholder="Type to search skills..."
-                  className="flex-grow"
-                  autoComplete="off" // Disable browser autocomplete
-                />
-                <Button
-                  type="button"
-                  onClick={() => handleAddSkill(newSkill)} // Pass newSkill
-                  className="flex-shrink-0"
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Skill
-                </Button>
+            {/* --- Section: Skills I Offer (MODIFIED) --- */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold flex items-center">
+                <Sparkles size={24} className="mr-3" />
+                Skills I Offer
+              </h2>
+              
+              {/* List of Offered Skills */}
+              <div className="flex flex-wrap gap-3">
+                {skills.length > 0 ? (
+                  skills.map((skill, index) => (
+                    <Badge variant="secondary" key={`skill-${index}`} className="flex items-center gap-2 capitalize">
+                      {skill}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 rounded-full"
+                        onClick={() => handleRemoveSkill(index, 'offered')}
+                        aria-label={`Remove ${skill}`}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No skills added yet.</p>
+                )}
               </div>
-
-              {/* --- NEW: Suggestions Box --- */}
-              {isSkillInputFocused && suggestions.length > 0 && (
-                <div className="absolute z-10 w-full sm:w-[calc(100%-120px)] mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {suggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="p-3 hover:bg-muted cursor-pointer text-sm capitalize"
-                      // Use onMouseDown to fire before the input blurs
-                      onMouseDown={(e) => {
-                        e.preventDefault(); 
-                        handleSuggestionClick(suggestion);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
+              
+              {/* Add new skill input (MODIFIED for handler) */}
+              <div className="relative">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    type="text"
+                    value={newSkill}
+                    onChange={(e) => handleUniversalInputChange(e, 'offered')}
+                    onFocus={() => setActiveInput('offered')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSkill(newSkill, 'offered');
+                      }
+                    }}
+                    placeholder="Add a skill you can teach (e.g., Python)"
+                    className="flex-grow"
+                    autoComplete="off"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleAddSkill(newSkill, 'offered')}
+                    className="flex-shrink-0"
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Skill
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+
+            <hr className='my-8' />
+
+            {/* --- NEW SECTION: Skills I Want to Learn --- */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold flex items-center">
+                <Heart size={24} className="mr-3" />
+                Skills I Want to Learn
+              </h2>
+              
+              {/* List of Learning Skills */}
+              <div className="flex flex-wrap gap-3">
+                {learningSkills.length > 0 ? (
+                  learningSkills.map((skill, index) => (
+                    <Badge variant="secondary" key={`learning-${index}`} className="flex items-center gap-2 capitalize">
+                      {skill}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 rounded-full"
+                        onClick={() => handleRemoveSkill(index, 'learning')}
+                        aria-label={`Remove ${skill}`}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">What do you want to learn?</p>
+                )}
+              </div>
+              
+              {/* Add new learning skill input */}
+              <div className="relative">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    type="text"
+                    value={newLearningSkill}
+                    onChange={(e) => handleUniversalInputChange(e, 'learning')}
+                    onFocus={() => setActiveInput('learning')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSkill(newLearningSkill, 'learning');
+                      }
+                    }}
+                    placeholder="Add a skill you want to learn (e.g., Figma)"
+                    className="flex-grow"
+                    autoComplete="off"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleAddSkill(newLearningSkill, 'learning')}
+                    className="flex-shrink-0"
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Goal
+                  </Button>
+                </div>
+              </div>
+            </div>
+            {/* --- Suggestions Box (UNIVERSAL) --- */}
+            {isSkillInputFocused && suggestions.length > 0 && activeInput && (
+              <div className={`absolute z-20 w-full sm:w-[calc(100%-120px)] mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto ${activeInput === 'learning' ? 'top-[440px]' : 'top-[240px]'}`}>
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="p-3 hover:bg-muted cursor-pointer text-sm capitalize"
+                    onMouseDown={(e) => {
+                      e.preventDefault(); 
+                      handleSuggestionClick(suggestion);
+                    }}
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div> {/* End Skills Container */}
+
 
           <hr />
 
@@ -334,7 +423,6 @@ D                    }
               Change Password
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* ... (password inputs are unchanged) ... */}
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
@@ -370,7 +458,6 @@ D                    }
           
         </CardContent>
 
-        {/* --- Footer: Actions (Unchanged) --- */}
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="w-full sm:w-auto">
             {statusMessage.message && (
